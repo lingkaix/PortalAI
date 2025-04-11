@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "PortalAI",
-        "width": 800,
-        "height": 600
+        "hiddenTitle": true,
+        "width": 900,
+        "height": 600,
+        "decorations": true,
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {

@@ -23,8 +23,3 @@
   - A list of the main files and/or folders expected to be created or significantly modified.
 - Then, when assigned an implementation task based on a plan document, you MUST attach that document as context and follow the specified design and implementation plan rigorously. Deviations require explicit approval or updates to the document.
 - ALWAYS check and adhere to the project's directory and file organization as defined in `docs/file-structure.md`. If a task requires changes to the established file structure (e.g., adding new standard directories, moving core components), you MUST update `docs/file-structure.md` to reflect these changes accurately as part of the task completion.
-
-## Tech Stack
-- Frontend: Typescript, React, Vite, Tailwind
-- Libraries/Agents: Typescript or Python
-- Desktop Runtime: Rust with Tauri(v2)

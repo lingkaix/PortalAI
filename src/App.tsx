@@ -1,51 +1,54 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+// Context Provider
+import { RightSidebarProvider } from './contexts/RightSidebarContext';
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+// Layout Components
+import { LeftSidebarContainer } from './layouts/LeftSidebarContainer';
+import { RightSidebar } from './layouts/RightSidebar';
+import { PageContent } from './layouts/PageContent'; // For fallback/not found
 
+// Page Components
+import { ChatPage } from './pages/ChatPage';
+import { SettingsPage } from './pages/SettingsPage';
+import { GroupChatAdminPage } from './pages/GroupChatAdminPage';
+
+// UI Components (only Card needed for fallback route here)
+import { Card } from './components/Card';
+import { TitleBar } from './components/TitleBar';
+
+// Main Application Component
+const App: React.FC = () => {
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more?</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+    <Router>
+      <RightSidebarProvider>
+        <TitleBar />
+        <div className="flex h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-900 font-sans text-sm">
+          <LeftSidebarContainer />
+          <main className="flex-grow flex flex-col relative overflow-hidden">
+            <Routes>
+              <Route path="/" element={<ChatPage />} />
+              <Route path="/chat/:chatType/:chatId" element={<ChatPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/group/:groupId/admin" element={<GroupChatAdminPage />} />
+              <Route
+                path="*"
+                element={
+                  <PageContent title="Not Found">
+                    <Card className="p-6">
+                      <p className="text-neutral-600 dark:text-neutral-400">The page you requested could not be found.</p>
+                    </Card>
+                  </PageContent>
+                }
+              />
+            </Routes>
+          </main>
+          <RightSidebar />
+        </div>
+      </RightSidebarProvider>
+    </Router>
   );
-}
+};
 
 export default App;

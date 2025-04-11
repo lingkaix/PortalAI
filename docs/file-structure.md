@@ -8,6 +8,10 @@ PortalAI/
 ├── src/                         # Frontend source code (React + TypeScript)
 │   ├── assets/                  # Frontend-specific static assets (images, fonts) processed by Vite
 │   ├── components/              # Reusable React UI components
+│   ├── contexts/              # React Context providers and hooks
+│   ├── data/                  # Mock data or data-fetching logic/files
+│   ├── layouts/               # Components defining page structure/layout
+│   ├── types/                 # TypeScript type definitions
 │   ├── hooks/                   # Custom React hooks
 │   ├── lib/                     # Utility functions, helpers, constants for the frontend
 │   ├── pages/                   # Page components (if using routing)

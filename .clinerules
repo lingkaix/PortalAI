@@ -17,3 +17,8 @@
 - Explain Complex Suggestions: If suggesting a complex pattern or non-trivial change, briefly explain the reasoning behind it.
 - Verify Dependencies: When adding new dependencies, ensure they are reputable, well-maintained, and necessary. Consider bundle size implications for frontend code.
 - Stay Updated (If Applicable): Use current, stable versions of language features and libraries unless constrained by the project. Avoid deprecated features.
+
+## Tech Stack
+- Frontend: Typescript, React, Vite, Tailwind
+- Libraries/Agents: Typescript or Python
+- Desktop Runtime: Rust with Tauri(v2)

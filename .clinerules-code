@@ -25,6 +25,7 @@
 - ALWAYS check and adhere to the project's directory and file organization as defined in `docs/file-structure.md`. If a task requires changes to the established file structure (e.g., adding new standard directories, moving core components), you MUST update `docs/file-structure.md` to reflect these changes accurately as part of the task completion.
 
 ## UI/UX Design Principles
+- Use CSS variables for the theme (and update the theme if needed) in src/App.css
 - Synthesized Aesthetic: Aim for a UI/UX design that blends functionality with a calming, nature-inspired feel. The core principles are:
 - Functionality & Clarity: Design a well-structured, functional interface tailored for efficient use by a potentially technical audience. Prioritize clear layouts, intuitive component design, minimalism, and ease of navigation.
 - Biophilic Calmness: Incorporate elements inspired by nature to create a calming environment. This can be achieved through:
@@ -33,7 +34,7 @@
 - Overall Goal: The final impression should be one of efficiency, clarity, ease of use, and a calm, focused working environment. Functionality and usability remain paramount.
 
 ## Frontend Guideline
-
+- use `lucide-react` as icon library
 ## JS/TS Guideline
 
 ## Python Guideline
