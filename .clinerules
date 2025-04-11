@@ -1,0 +1,19 @@
+## Core Principles
+- Security First: Prioritize security in all generated code. Avoid hardcoded secrets or credentials. Implement robust input validation and output sanitization to prevent common vulnerabilities (XSS, SQLi, etc.). Assume all external input is potentially malicious.
+- Clarity & Readability: Generate code that is easy for humans to understand. Use meaningful variable, function, and class names. Follow consistent naming conventions. Add comments only where the logic is complex or non-obvious, not to explain simple code.
+- Maintainability: Write modular code. Break down complex logic into smaller, manageable functions or components. Avoid overly complex structures or deep nesting. Aim for code that is easy to modify and debug later.
+- Simplicity (KISS): Prefer simple, straightforward solutions over complex ones unless complexity is justified by significant performance gains or necessary functionality. "Keep It Simple, Stupid."
+- Correctness: Ensure the generated code correctly implements the requested logic and handles edge cases appropriately.
+- Consistency: Adhere strictly to the established coding style, patterns, and conventions of the specific project and language.
+- No Premature Optimization: Write clear, working code first. Optimize only when performance analysis indicates a bottleneck and the optimization doesn't unduly sacrifice readability or maintainability.
+- Robust Error Handling: Implement comprehensive error handling. Use specific exception types where appropriate. Ensure errors are logged usefully and handled gracefully without crashing or exposing sensitive information.
+- Testability: Write code that is inherently testable. Favor pure functions and dependency injection where applicable to facilitate unit testing.
+
+## Interaction & Generation
+- Conten in English: All generated content, including but not limited to names/variables, comments and documents, must be in English.
+- Document in Markdown: All generated document files must be in markdown formation. Use mermaid syntax for diagrams and KaTeX syntax for formula.
+- Context is Key: Always consider the surrounding code and project context when generating or modifying code. Ask for clarification if the request is ambiguous.
+- Incremental Changes: For modifications, prefer smaller, incremental changes that are easier to review and understand.
+- Explain Complex Suggestions: If suggesting a complex pattern or non-trivial change, briefly explain the reasoning behind it.
+- Verify Dependencies: When adding new dependencies, ensure they are reputable, well-maintained, and necessary. Consider bundle size implications for frontend code.
+- Stay Updated (If Applicable): Use current, stable versions of language features and libraries unless constrained by the project. Avoid deprecated features.

@@ -120,7 +120,7 @@ Effective context and learning are enabled by a multi-layered memory system:
   * A repository of information relevant to the entire Team Workspace (e.g., company policies, team members' skills, standard operating procedures, shared templates).  
   * Accessible by all human and AI members within that Workspace.  
   * Provides broader shared context for all projects within the workspace.  
-* **6.4 Contextual Synergy:** During operation, an agent typically utilizes a combination of its own Agent Memory (Short-Term \+ Long-Term) along with relevant information fetched from the active Project and Workspace Knowledge Bases to inform its responses and actions, ensuring highly contextualized behavior.
+* **6.4 Contextual Synergy:** During operation, an agent typically utilizes a combination of its own Agent Memory (Short-Term + Long-Term) along with relevant information fetched from the active Project and Workspace Knowledge Bases to inform its responses and actions, ensuring highly contextualized behavior.
 
 ## 7. Technical Stack
 
@@ -136,7 +136,7 @@ Effective context and learning are enabled by a multi-layered memory system:
 * **Transparency & Control:** Users need visibility into agent actions and reasoning, plus easy ways to guide, correct, and configure both via NL and structured UIs. Provide clarity on which memory/knowledge sources an agent is using. Make Tool authorization explicit and clear.  
 * **Asset Visibility & Organization:** Make it effortless for users to find, understand the context of, and manage the various assets (code, reports, visualizations) generated during their work. Easy navigation between Chats, Projects, Workspaces, and associated Assets/Knowledge Bases.  
 * **Clear Visualization:** Provide clear feedback on agent status, actions, thought processes (if possible), and collaboration flow. Visualize agent roles, scopes, and memory interactions if possible.  
-* **Minimal Friction:** Focus on streamlining the core loop: discuss \-\> assign \-\> execute (human/AI) \-\> generate asset \-\> review \-\> iterate. Streamline common actions like creating projects, adding agents, managing permissions.
+* **Minimal Friction:** Focus on streamlining the core loop: discuss -> assign -> execute (human/AI) -> generate asset -> review -> iterate. Streamline common actions like creating projects, adding agents, managing permissions.
 
 ## 9. Security & Privacy Considerations
 

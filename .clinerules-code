@@ -1,0 +1,41 @@
+## Style & Formatting
+- Adhere to Language Standards: Strictly follow the canonical style guide for the target language (e.g., PEP 8 for Python, StandardJS/Prettier rules for TypeScript/JavaScript, rustfmt for Rust, Go fmt for Go).
+- Consistent Formatting: Ensure consistent indentation, spacing, line breaks, and brace style throughout the codebase.
+
+## Implementation Details
+- Clear Naming: Use descriptive names for variables, functions, classes, etc., that clearly indicate their purpose. Avoid overly short or ambiguous names.
+- Function Granularity (SRP): Keep functions and methods small and focused on a single responsibility. Extract complex logic into helper functions.
+- Parameter Handling: Limit the number of parameters per function where possible. Consider using objects/structs for functions with many parameters. Clearly document parameter types and purpose.
+- Return Values: Functions should have clear return types and return values consistently. Avoid returning ambiguous values like null or magic codes where possible; prefer exceptions or specific result objects/enums.
+- Comments: Add comments primarily to explain why something is done a certain way (the intent or trade-offs), or to clarify complex algorithms. Do not comment obvious code. Keep comments up-to-date.
+- Error Handling (Specific): Use `try...catch` blocks appropriately. Catch specific exception types rather than generic `Exception` or `Error`. Log errors with sufficient context. Ensure resources (files, network connections) are properly closed (e.g., using `finally` or try-with-resources patterns). In Rust, use `Result` chained with `and_then`.
+- Input Validation: Explicitly validate inputs to functions, especially public APIs or functions processing external data. Handle invalid input gracefully.
+- Constants: Avoid magic numbers and strings. Define constants with meaningful names for repeated literal values.
+- Immutability: Prefer immutable data structures where practical, especially in functional programming contexts or when dealing with state.
+- Resource Management: Ensure proper handling and release of resources like file handles, network sockets, database connections, etc.
+- Code Duplication (DRY): Actively avoid duplicating code blocks. Refactor common logic into reusable functions or classes.
+- Type Safety: Utilize static typing features of the language (e.g., TypeScript, Python type hints) effectively to improve code reliability and maintainability.
+- API/Library Usage: Use external libraries and APIs according to their documented best practices. Handle potential API errors correctly.
+
+## Testing
+- Unit Tests: Write unit tests for critical business logic, complex algorithms, and utility functions. Aim for good test coverage of core functionality. Ensure tests are independent and deterministic.
+
+## Documentation
+- Public API Documentation: Add clear documentation (e.g., JSDoc for JS/TS, Docstrings for Python, rustdoc for Rust) for public functions, classes, and modules explaining their purpose, parameters, return values, and any potential exceptions or side effects.
+- ALWAYS check and adhere to the project's directory and file organization as defined in `docs/file-structure.md`. If a task requires changes to the established file structure (e.g., adding new standard directories, moving core components), you MUST update `docs/file-structure.md` to reflect these changes accurately as part of the task completion.
+
+## UI/UX Design Principles
+- Synthesized Aesthetic: Aim for a UI/UX design that blends functionality with a calming, nature-inspired feel. The core principles are:
+- Functionality & Clarity: Design a well-structured, functional interface tailored for efficient use by a potentially technical audience. Prioritize clear layouts, intuitive component design, minimalism, and ease of navigation.
+- Biophilic Calmness: Incorporate elements inspired by nature to create a calming environment. This can be achieved through:
+  - Color Palette: Use clean, professional base colors with nature-inspired accent colors (e.g., greens, blues, earth tones) used sparingly for highlighting.
+  - Subtle Elements: Consider incorporating subtle background textures, rounded corners, or iconography that evokes natural forms, without cluttering the interface or sacrificing clarity.
+- Overall Goal: The final impression should be one of efficiency, clarity, ease of use, and a calm, focused working environment. Functionality and usability remain paramount.
+
+## Frontend Guideline
+
+## JS/TS Guideline
+
+## Python Guideline
+
+## Rust Guideline
