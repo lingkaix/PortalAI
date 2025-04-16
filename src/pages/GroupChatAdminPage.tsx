@@ -102,7 +102,7 @@ export const GroupChatAdminPage: React.FC = () => {
   const dangerTextClasses = "text-sm text-[var(--destructive)]/80 dark:text-[var(--destructive)]/70 mt-3"; // Muted destructive text
 
   return (
-    <PageContent title={`Manage: ${group.name}`}>
+    <PageContent title={`Manage: ${group.name}`} data-component-id="GroupChatAdminPage">
       {/* Back Button */}
       <button onClick={handleBackToChat} className={backButtonClasses}>
         <ArrowLeft size={16} className="mr-2" /> Back to Chat

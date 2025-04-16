@@ -15,10 +15,10 @@ export const PageContent: React.FC<PageContentProps> = ({ title, children }) => 
   const placeholderTextClasses = "text-[var(--text-secondary)]"; // Use secondary text for placeholder
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} data-component-id="PageContent">
     {/* Page Header - Warmer Style */}
-      <div className={headerClasses}>
-        <h2 className={titleClasses}>{title}</h2>
+      <div className={headerClasses} data-tauri-drag-region>
+        <h2 className={titleClasses} data-tauri-drag-region>{title}</h2>
       </div>
     {/* Page Body - Increased Padding and scrollable */}
       <div className={bodyClasses}>

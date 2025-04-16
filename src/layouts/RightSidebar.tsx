@@ -16,7 +16,7 @@ export const RightSidebar: React.FC = () => {
 
   return (
     <div
-      className={`${sidebarBaseClasses} ${isOpen ? "translate-x-0" : "translate-x-full"}`}
+      className={`${sidebarBaseClasses} ${isOpen ? "translate-x-0" : "translate-x-full"}`} data-component-id="RightSidebar"
       aria-hidden={!isOpen} // Improve accessibility
     >
       <div className="h-full flex flex-col">

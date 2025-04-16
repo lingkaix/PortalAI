@@ -25,7 +25,7 @@ export const Avatar: React.FC<AvatarProps> = ({ src, alt, size = "md", status, c
   const fallbackText = alt?.substring(0, 2).toUpperCase() || "??";
 
   return (
-    <AvatarPrimitive.Root className={cn("relative flex-shrink-0", sizeClasses[size], className)} {...props}>
+    <AvatarPrimitive.Root className={cn("relative flex-shrink-0", sizeClasses[size], className)} {...props} data-component-id="Avatar">
       <AvatarPrimitive.Image
         className={cn("h-full w-full rounded-full object-cover")}
         src={src}

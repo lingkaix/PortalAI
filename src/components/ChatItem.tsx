@@ -47,7 +47,7 @@ export const ChatItem: React.FC<ChatItemProps> = ({ chat, isSelected }) => {
   return (
     <Link
       to={linkTo}
-      className={combinedClasses}
+      className={combinedClasses} data-component-id="ChatItem"
     >
       {/* Softer icon colors */}
       {type === "group" ? <Hash size={16} className={iconClasses} /> : <User size={16} className={iconClasses} />}

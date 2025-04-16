@@ -65,7 +65,7 @@ export const SettingsPage: React.FC = () => {
   );
 
   return (
-    <PageContent title="Settings">
+    <PageContent title="Settings" data-component-id="SettingsPage">
       <div className="max-w-3xl mx-auto space-y-8">
         {/* Profile Settings Card */}
         <Card className="p-8">

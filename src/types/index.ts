@@ -33,6 +33,7 @@ export type ChatType = {
   timestamp?: Date;
   participants?: UserType[];
   workspaceId: string; // Link chat to a workspace
+  channelId: string; // Link chat to a channel
 };
 
 // Workspace related types
@@ -40,6 +41,13 @@ export type WorkspaceType = {
   id: string;
   name: string;
   icon: ReactNode;
+};
+
+// Channel related types
+export type ChannelType = {
+  id: string;
+  name: string;
+  workspaceId: string; // Link channel to a workspace
 };
 
 // Context related types (if needed outside context file)

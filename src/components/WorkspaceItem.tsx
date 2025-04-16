@@ -22,7 +22,7 @@ export const WorkspaceItem: React.FC<WorkspaceItemProps> = ({ workspace, isSelec
     <button
       onClick={onClick}
       title={workspace.name}
-      className={combinedClasses}
+      className={combinedClasses} data-component-id="WorkspaceItem"
     >
       {/* Selection indicator */}
       {isSelected && <span className={indicatorClasses}></span>}

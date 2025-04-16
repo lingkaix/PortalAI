@@ -5,7 +5,6 @@ interface Props {
   className?: string;
 }
 
-// Card Component Wrapper - Enhanced Warmth
 export const TitleBar: React.FC<Props> = () => {
-  return <div data-tauri-drag-region className="titlebar"></div>;
+  return <div data-tauri-drag-region className="titlebar" data-component-id="TitleBar"></div>;
 };

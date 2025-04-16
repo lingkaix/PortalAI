@@ -1,12 +1,12 @@
 import React from "react";
 import { TreePine, Sprout, MountainSnow } from "lucide-react";
-import { UserType, ChatType, MessageType, WorkspaceType } from "../types";
+import { UserType, ChatType, MessageType, WorkspaceType, ChannelType } from "../types";
 
 // Mock Workspaces
 export const mockWorkspaces: WorkspaceType[] = [
   { id: "ws1", name: "Nature Escapes", icon: React.createElement(TreePine, { size: 24 }, null) },
-  { id: "ws2", name: "Home & Garden", icon: React.createElement(Sprout, { size: 24 }, null) },
-  { id: "ws3", name: "Alpine Club", icon: React.createElement(MountainSnow, { size: 24 }, null) },
+  { id: "ws1", name: "Home & Garden", icon: React.createElement(Sprout, { size: 24 }, null) },
+  { id: "ws1", name: "Alpine Club", icon: React.createElement(MountainSnow, { size: 24 }, null) },
 ];
 
 // Mock Users
@@ -18,12 +18,20 @@ export const mockUsers: Record<string, UserType> = {
 };
 
 // Mock Chats
+export const mockChannels: ChannelType[] = [
+  { id: "channel1", name: "General", workspaceId: "ws1" },
+  { id: "channel2", name: "Project Alpha", workspaceId: "ws1" },
+  { id: "channel3", name: "Gardening Tips", workspaceId: "ws1" },
+  { id: "channel4", name: "Off-Topic", workspaceId: "ws1" },
+  { id: "channel5", name: "Hiking Adventures", workspaceId: "ws1" },
+];
+
 export const mockChats: ChatType[] = [
-  { id: "dm1", type: "direct", name: "Alex Johnson", avatar: mockUsers["user1"].avatar, lastMessage: "Okay, sounds good!", unreadCount: 2, timestamp: new Date(Date.now() - 3600 * 1000 * 5), workspaceId: "ws1" },
-  { id: "group1", type: "group", name: "Forest Hike Planning", lastMessage: "Let's sync tomorrow morning.", unreadCount: 0, timestamp: new Date(Date.now() - 3600 * 1000 * 25), participants: [mockUsers["user1"], mockUsers["user2"], mockUsers["user3"]], workspaceId: "ws1" },
-  { id: "dm2", type: "direct", name: "Maria Garcia", avatar: mockUsers["user2"].avatar, lastMessage: "Can you review this doc?", unreadCount: 0, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 3), workspaceId: "ws2" },
-  { id: "group2", type: "group", name: "Garden Club", lastMessage: "New seeds arrived!", unreadCount: 5, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 8), participants: [mockUsers["user2"], mockUsers["user4"], mockUsers["user3"]], workspaceId: "ws2" },
-  { id: "group3", type: "group", name: "Trail Maintenance", lastMessage: "Need volunteers this Sat.", unreadCount: 1, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 2), participants: [mockUsers["user1"], mockUsers["user4"], mockUsers["user3"]], workspaceId: "ws3" },
+  { id: "dm1", type: "direct", name: "Alex Johnson", avatar: mockUsers["user1"].avatar, lastMessage: "Okay, sounds good!", unreadCount: 2, timestamp: new Date(Date.now() - 3600 * 1000 * 5), workspaceId: "ws1", channelId: "channel1" },
+  { id: "group1", type: "group", name: "Forest Hike Planning", lastMessage: "Let's sync tomorrow morning.", unreadCount: 0, timestamp: new Date(Date.now() - 3600 * 1000 * 25), participants: [mockUsers["user1"], mockUsers["user2"], mockUsers["user3"]], workspaceId: "ws1", channelId: "channel2" },
+  { id: "dm2", type: "direct", name: "Maria Garcia", avatar: mockUsers["user2"].avatar, lastMessage: "Can you review this doc?", unreadCount: 0, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 3), workspaceId: "ws1", channelId: "channel3" },
+  { id: "group2", type: "group", name: "Garden Club", lastMessage: "New seeds arrived!", unreadCount: 5, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 8), participants: [mockUsers["user2"], mockUsers["user4"], mockUsers["user3"]], workspaceId: "ws1", channelId: "channel3" },
+  { id: "group3", type: "group", name: "Trail Maintenance", lastMessage: "Need volunteers this Sat.", unreadCount: 1, timestamp: new Date(Date.now() - 3600 * 1000 * 24 * 2), participants: [mockUsers["user1"], mockUsers["user4"], mockUsers["user3"]], workspaceId: "ws1", channelId: "channel5" },
 ];
 
 // Mock Messages

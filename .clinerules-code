@@ -3,6 +3,10 @@
 - Consistent Formatting: Ensure consistent indentation, spacing, line breaks, and brace style throughout the codebase.
 
 ## Implementation Details
+- Preserve Existing Code: Don't remove unrelated code or functionalities. Pay attention to preserving existing structures
+- No Unnecessary Updates: Don't suggest updates or changes to files when there are no actual modification’s needed
+- Avoid Magic Numbers: Replace hardcoded values with named constants to improve code clarity and maintainability
+- Consider Edge Cases: When implementing logic, always consider and handle potential edae cases
 - Clear Naming: Use descriptive names for variables, functions, classes, etc., that clearly indicate their purpose. Avoid overly short or ambiguous names.
 - Function Granularity (SRP): Keep functions and methods small and focused on a single responsibility. Extract complex logic into helper functions.
 - Parameter Handling: Limit the number of parameters per function where possible. Consider using objects/structs for functions with many parameters. Clearly document parameter types and purpose.
@@ -35,6 +39,8 @@
 
 ## Frontend Guideline
 - use `lucide-react` as icon library
+- use Radix Primitives to build react components
+- Always follow and use theme (CSS varialbles and basic styles) in src/App.css when build UI parts
 ## JS/TS Guideline
 
 ## Python Guideline

@@ -23,7 +23,7 @@ export const Message: React.FC<MessageProps> = ({ message, isCurrentUser }) => {
   // Define class strings using CSS variables
   const containerBaseClasses = "flex items-start space-x-3 py-3 px-4 group";
   const senderNameClasses = "text-xs font-medium text-[var(--text-secondary)] mb-1";
-  const bubbleBaseClasses = "relative px-3.5 py-2 rounded-xl max-w-xs md:max-w-md lg:max-w-lg break-words shadow-[var(--card-shadow)]"; // Use card shadow
+  const bubbleBaseClasses = "select-text relative px-3.5 py-2 rounded-xl max-w-xs md:max-w-md lg:max-w-lg break-words shadow-[var(--card-shadow)]"; // Use card shadow
   const currentUserBubbleClasses = "bg-[var(--accent-primary)] text-[var(--accent-primary-text)] rounded-br-lg"; // Use accent for user
   const otherUserBubbleClasses = "bg-[var(--card-background)] text-[var(--text-primary)] border border-[var(--border-primary)] rounded-bl-lg";
   const metaContainerClasses = "flex items-center mt-1.5 space-x-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200";
@@ -35,7 +35,7 @@ export const Message: React.FC<MessageProps> = ({ message, isCurrentUser }) => {
 
 
   return (
-    <div className={`${containerBaseClasses} ${isCurrentUser ? "justify-end" : ""}`}>
+    <div className={`${containerBaseClasses} ${isCurrentUser ? "justify-end" : ""}`} data-component-id="Message">
       {/* Show sender avatar only if not the current user */}
       {!isCurrentUser && <Avatar src={sender.avatar} alt={sender.name} size="md" />}
 

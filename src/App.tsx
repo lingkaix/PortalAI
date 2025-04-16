@@ -13,8 +13,11 @@ import { PageContent } from './layouts/PageContent'; // For fallback/not found
 import { ChatPage } from './pages/ChatPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { GroupChatAdminPage } from './pages/GroupChatAdminPage';
+import { AgentsPage } from './pages/AgentsPage'; // Import new page
+import { ToolsPage } from './pages/ToolsPage'; // Import new page
+import { KnowledgePage } from './pages/KnowledgePage'; // Import new page
 
-// UI Components (only Card needed for fallback route here)
+// UI Components
 import { Card } from './components/Card';
 import { TitleBar } from './components/TitleBar';
 
@@ -24,14 +27,25 @@ const App: React.FC = () => {
     <Router>
       <RightSidebarProvider>
         <TitleBar />
-        <div className="flex h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-900 font-sans text-sm">
+        <div className="flex h-screen w-screen overflow-hidden bg-neutral-100 dark:bg-neutral-900 font-sans text-sm min-w-200 min-h-150">
+          {/* Layer 1 Sidebar */}
           <LeftSidebarContainer />
+          {/* Main Content Area */}
           <main className="flex-grow flex flex-col relative overflow-hidden">
             <Routes>
+              {/* Chat Routes (Root and specific chat) */}
               <Route path="/" element={<ChatPage />} />
               <Route path="/chat/:chatType/:chatId" element={<ChatPage />} />
+
+              {/* Page Routes */}
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/tools" element={<ToolsPage />} />
+              <Route path="/knowledge" element={<KnowledgePage />} />
+
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/group/:groupId/admin" element={<GroupChatAdminPage />} />
+
+              {/* Fallback Route */}
               <Route
                 path="*"
                 element={
@@ -44,6 +58,7 @@ const App: React.FC = () => {
               />
             </Routes>
           </main>
+          {/* Right Sidebar */}
           <RightSidebar />
         </div>
       </RightSidebarProvider>

@@ -67,7 +67,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
   const sendButtonClasses = "p-2.5 rounded-xl bg-[var(--button-primary-background)] text-[var(--button-primary-text)] hover:bg-[var(--button-primary-hover)] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--input-focus-ring)] dark:focus:ring-offset-[var(--background-secondary)] flex-shrink-0 transition-colors duration-150"; // Adjusted focus ring offset for dark mode
 
   return (
-    <div className={containerClasses}>
+    <div className={containerClasses} data-component-id="ChatInput">
       {/* Hidden file input */}
       <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple />
 

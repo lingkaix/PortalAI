@@ -64,6 +64,20 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+
+  cursor: default;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+*{
+  -webkit-user-drag: none !important;
+}
+
+button:hover,
+a:hover {
+  cursor: pointer;
 }
 /* hide scrollbar, tested on Safari */
 div::-webkit-scrollbar,

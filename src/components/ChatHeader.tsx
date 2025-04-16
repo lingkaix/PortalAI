@@ -92,7 +92,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
   );
 
   return (
-    <div className={headerBaseClasses}>
+    <div className={headerBaseClasses} data-component-id="ChatHeader"  data-tauri-drag-region>
       {/* Left side: Avatar/Icon and Chat Name */}
       <div className="flex items-center space-x-3 overflow-hidden">
         {/* Removed comment */}

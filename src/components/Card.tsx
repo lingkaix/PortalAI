@@ -11,6 +11,6 @@ export const Card: React.FC<CardProps> = ({ children, className = "" }) => {
   const cardBaseClasses = "bg-[var(--card-background)] border border-[var(--card-border)] rounded-xl shadow-[var(--card-shadow)]";
 
   return (
-    <div className={`${cardBaseClasses} ${className}`}>{children}</div>
+    <div className={`${cardBaseClasses} ${className}`} data-component-id="Card">{children}</div>
   );
 };
