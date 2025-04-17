@@ -1,37 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Import useEffect
 import * as Switch from "@radix-ui/react-switch";
 import * as Select from "@radix-ui/react-select";
 import { Check, ChevronDown } from "lucide-react"; // Import icons from lucide-react
 import { PageContent } from "../layouts/PageContent";
 import { Card } from "../components/Card";
 import { Avatar } from "../components/Avatar";
-import { mockUsers } from "../data/mockData";
 import { cn } from "../lib/utils"; // Import cn utility
+import { useSettingsStore, SettingsState } from "../data/settingsStore"; // Import store hook and State
+// Removed unused useStore and shallow imports
+import { UserStatus, UserSettings } from "../types"; // Import UserStatus and UserSettings types
+
+// Define the type for the selected slice of state
+type SettingsSlice = Pick<SettingsState, 'name' | 'status' | 'notificationsEnabled' | 'theme'>;
 
 // Settings Page Component
 export const SettingsPage: React.FC = () => {
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  // In a real app, these would likely come from user context or API
-  const currentUser = mockUsers["user3"];
-  const [currentName, setCurrentName] = useState(currentUser.name);
-  const [currentStatus, setCurrentStatus] = useState(currentUser.status);
+  // Select individual state pieces to avoid object reference issues
+  const name = useSettingsStore((state) => state.name);
+  const status = useSettingsStore((state) => state.status);
+  const notificationsEnabled = useSettingsStore((state) => state.notificationsEnabled);
+  const theme = useSettingsStore((state) => state.theme);
 
-  // TODO: Implement save logic (e.g., API call)
+  // Select actions
+  const setNotificationsEnabled = useSettingsStore((state) => state.setNotificationsEnabled);
+  const setTheme = useSettingsStore((state) => state.setTheme);
+  const saveProfileSettings = useSettingsStore((state) => state.saveProfileSettings);
+
+  // Local state for profile fields edited before saving
+  const [localName, setLocalName] = useState(name);
+  const [localStatus, setLocalStatus] = useState<UserStatus>(status);
+
+  // Sync local state if store changes (e.g., after initial load)
+  useEffect(() => {
+    setLocalName(name);
+    setLocalStatus(status);
+  }, [name, status]); // Depend on the individual state variables
+
+  // Handle saving profile changes
   const handleSaveChanges = () => {
-    console.log("Saving changes:", { name: currentName, status: currentStatus });
-    // Update mock data (for demo purposes only)
-    mockUsers["user3"].name = currentName;
-    mockUsers["user3"].status = currentStatus;
-    alert("Settings saved (mock)");
+    saveProfileSettings(localName, localStatus);
+    // Optional: Add user feedback like a toast notification
   };
 
-  // TODO: Implement theme change logic
-  const handleThemeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Theme changed to:", event.target.id.replace("theme-", ""));
-    // Apply theme change logic here (e.g., update class on body, save preference)
-  };
+  // Theme change is handled directly in the radio button onChange
 
-  // Define class strings using CSS variables
+  // --- Class definitions remain the same ---
   const cardTitleClasses = "text-xl font-semibold leading-6 text-[var(--text-primary)] mb-5";
   const cardDescriptionClasses = "text-sm text-[var(--text-secondary)] mb-6";
   const labelClasses = "block text-sm font-medium text-[var(--text-secondary)] mb-1.5";
@@ -79,25 +92,15 @@ export const SettingsPage: React.FC = () => {
               <label htmlFor="name" className={labelClasses}>
                 Name
               </label>
-              <input type="text" name="name" id="name" value={currentName} onChange={(e) => setCurrentName(e.target.value)} className={inputClasses} />
+              <input type="text" name="name" id="name" value={localName} onChange={(e) => setLocalName(e.target.value)} className={inputClasses} />
             </div>
-            {/* Avatar Display & Change Button */}
-            <div>
-              <label className={labelClasses}>Avatar</label>
-              <div className="flex items-center space-x-4">
-                <Avatar src={currentUser.avatar} alt="Current Avatar" size="lg" />
-                {/* TODO: Implement avatar change functionality */}
-                <button type="button" className={changeButtonClasses}>
-                  Change
-                </button>
-              </div>
-            </div>
+            {/* Avatar section removed as it's not part of the current settings scope */}
             {/* Status Select */}
             <div>
               <label htmlFor="status" className={labelClasses}>
                 Status
               </label>
-              <Select.Root value={currentStatus} onValueChange={(value) => setCurrentStatus(value as "online" | "offline" | "away")}>
+              <Select.Root value={localStatus} onValueChange={(value) => setLocalStatus(value as UserStatus)}>
                 <Select.Trigger className={selectTriggerClasses} id="status">
                   <Select.Value />
                   <Select.Icon className="ml-2">
@@ -152,7 +155,7 @@ export const SettingsPage: React.FC = () => {
             </span>
             <Switch.Root
               id="desktop-notifications-switch"
-              checked={notificationsEnabled}
+              checked={notificationsEnabled} // Use individual state variable
               onCheckedChange={setNotificationsEnabled}
               className={cn(
                 "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--input-focus-ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--card-background)] disabled:cursor-not-allowed disabled:opacity-50",
@@ -175,19 +178,18 @@ export const SettingsPage: React.FC = () => {
               {" "}
               {/* Increased spacing */}
               {/* Theme Radio Buttons */}
-              {["Light", "Dark", "System"].map((theme) => (
-                <div key={theme} className="flex items-center">
+              {["Light", "Dark", "System"].map((themeValue) => (
+                <div key={themeValue} className="flex items-center">
                   <input
-                    id={`theme-${theme.toLowerCase()}`}
+                    id={`theme-${themeValue.toLowerCase()}`}
                     name="theme"
                     type="radio"
-                    // TODO: Set defaultChecked based on actual current theme
-                    defaultChecked={theme === "System"}
-                    onChange={handleThemeChange}
+                    checked={theme === themeValue} // Use individual state variable
+                    onChange={() => setTheme(themeValue as UserSettings['theme'])} // Call store action directly
                     className={radioInputClasses}
                   />
-                  <label htmlFor={`theme-${theme.toLowerCase()}`} className={radioLabelClasses}>
-                    {theme}
+                  <label htmlFor={`theme-${themeValue.toLowerCase()}`} className={radioLabelClasses}>
+                    {themeValue}
                   </label>
                 </div>
               ))}

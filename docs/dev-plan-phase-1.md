@@ -41,10 +41,10 @@ This initial phase focuses on validating the core architecture, agent capabiliti
   * **Orchestration & codeAct:** The Orchestrator agent (TS, using LangGraph) will generate **TypeScript/JavaScript code snippets** following the codeAct pattern.  
   * **Other Agents:** Logic implemented in TypeScript, leveraging LangChain abstractions.  
 * **Configuration & Metadata (Local JSON Files):**  
-  * Replace database with local JSON files stored in the application's data directory.  
   * agents.json: Stores configurations for defined agents (LLM settings like API key source/model name, temperature, assigned tools, role/prompt).  
-  * mcp-tools.json: Stores configurations for external MCP tools provided by the user.  
-  * knowledge-base.json: Stores metadata for Knowledge Base files (path, user-assigned category, AI-generated summary, timestamps).  
+  * mcp.json: Stores configurations for external MCP tools provided by the user.  
+  * knowledge.json: Stores index of knowladge bases, each knowladge bases has its own index file which stores metadata for Knowledge Base files (path, user-assigned category, AI-generated summary, timestamps) and seperated folder for files. 
+  * channels.json: Stores channels' information. Each chat(DM or group) has its own json file to store messages. And each channel has its own folder to store assets.
   * **Data Access:** Read/write operations on these JSON files handled by TypeScript functions calling Tauri's FS APIs. Need to manage potential concurrent access if applicable, though less likely in MVP.  
 * **Knowledge Base Implementation:**  
   * **Storage:** Original documents stored directly on the user's local file system.  

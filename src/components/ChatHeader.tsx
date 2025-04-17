@@ -21,8 +21,8 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
 
   // Render a placeholder if no chat is selected
   // Define class strings using CSS variables to avoid JSX parsing issues
-  const placeholderClasses = "p-4 h-[69px] border-b border-[var(--border-primary)] bg-[var(--card-background)] flex-shrink-0";
-  const headerBaseClasses = "p-4 h-[69px] border-b border-[var(--border-primary)] flex items-center justify-between flex-shrink-0 bg-[var(--card-background)]";
+  const placeholderClasses = "p-4 h-18 border-b border-[var(--border-primary)] bg-[var(--card-background)] flex-shrink-0";
+  const headerBaseClasses = "p-4 pt-6 h-18 border-b border-[var(--border-primary)] flex items-center justify-between flex-shrink-0 bg-[var(--card-background)]";
   const groupIconClasses = "w-9 h-9 rounded-xl border border-[var(--border-primary)] bg-[var(--accent-primary)]/10 dark:bg-[var(--accent-primary)]/20 flex items-center justify-center text-[var(--accent-primary)] dark:text-[var(--accent-primary)] flex-shrink-0"; // Use primary accent
   const chatNameClasses = "font-medium text-[var(--text-primary)] truncate";
   const subtitleClasses = "text-xs text-[var(--text-secondary)]";

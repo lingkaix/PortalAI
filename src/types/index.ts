@@ -57,3 +57,11 @@ export interface RightSidebarContextType {
   closeSidebar: () => void;
   content: ReactNode;
 }
+
+// Settings related types
+export interface UserSettings {
+  name: string;
+  status: UserStatus; // Re-use existing UserStatus type
+  notificationsEnabled: boolean;
+  theme: 'Light' | 'Dark' | 'System';
+}

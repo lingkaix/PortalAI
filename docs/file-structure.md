@@ -10,10 +10,12 @@ PortalAI/
 │   ├── components/              # Reusable React UI components
 │   ├── contexts/              # React Context providers and hooks
 │   ├── data/                  # Mock data or data-fetching logic/files
+│   │   └── settingsStore.ts     # Zustand store for managing application settings
 │   ├── layouts/               # Components defining page structure/layout
 │   ├── types/                 # TypeScript type definitions
 │   ├── hooks/                   # Custom React hooks
 │   ├── lib/                     # Utility functions, helpers, constants for the frontend
+│   │   └── settingsManager.ts   # Manages loading/saving settings via Tauri FS API
 │   ├── pages/                   # Page components (if using routing)
 │   ├── styles/                  # Global CSS, CSS Modules, or styling configurations
 │   ├── App.tsx                  # Root React component
