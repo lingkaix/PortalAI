@@ -10,21 +10,23 @@ import {
 } from "@tauri-apps/plugin-fs";
 import { join, appDataDir } from "@tauri-apps/api/path";
 // No longer need separate import for Dirent
-import { UserSettings } from "../types"; // Keep for default settings export
+import { UserSettings, AgentType, ToolType, KnowledgeBaseType } from "../types"; // Import new types
 
 // --- Constants for specific data files/dirs based on dev plan ---
 export const SETTINGS_FILE = "settings.json";
 export const AGENTS_FILE = "agents.json";
+export const TOOLS_FILE = "tools.json"; // Added for tools
+export const KNOWLEDGE_BASES_FILE = "knowledgeBases.json"; // Renamed/Added for knowledge bases list
 export const MCP_FILE = "mcp.json";
-export const KNOWLEDGE_INDEX_FILE = "knowledge.json"; // Index file
+// export const KNOWLEDGE_INDEX_FILE = "knowledge.json"; // Index file - Keeping KNOWLEDGE_BASES_FILE instead for the list
 export const CHANNELS_INDEX_FILE = "channels.json"; // Index file
 
-export const KNOWLEDGE_BASE_DIR = "knowledge"; // Dir for knowledge bases
+export const KNOWLEDGE_BASE_DIR = "knowledge"; // Dir for individual knowledge base content/files
 export const CHANNELS_DATA_DIR = "channels"; // Dir for channel messages/assets
 
 // Default settings (exported for use in settingsStore)
 export const DEFAULT_SETTINGS: UserSettings = {
-  name: "User",
+  name: "Me",
   status: "online",
   notificationsEnabled: false,
   theme: "System",
@@ -274,11 +276,61 @@ export async function saveUserSettings(settings: UserSettings): Promise<void> {
   await writeJsonFile<UserSettings>(SETTINGS_FILE, settings);
 }
 
-// Add similar specific loaders/savers for agents, mcp, knowledge index, etc. as needed
-// Example:
-// export async function loadAgentsConfig(): Promise<AgentConfig[] | null> {
-//    return await readJsonFile<AgentConfig[]>(AGENTS_FILE, []); // Default to empty array
-// }
-// export async function saveAgentsConfig(config: AgentConfig[]): Promise<void> {
-//    await writeJsonFile(AGENTS_FILE, config);
-// }
+// --- Agent Data ---
+
+/**
+ * Loads the list of agents.
+ * @returns {Promise<AgentType[]>} An array of agents, defaults to empty array if not found or invalid.
+ */
+export async function loadAgents(): Promise<AgentType[]> {
+  return (await readJsonFile<AgentType[]>(AGENTS_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of agents.
+ * @param {AgentType[]} agents - The array of agents to save.
+ * @returns {Promise<void>}
+ */
+export async function saveAgents(agents: AgentType[]): Promise<void> {
+  await writeJsonFile<AgentType[]>(AGENTS_FILE, agents);
+}
+
+// --- Tool Data ---
+
+/**
+ * Loads the list of tools.
+ * @returns {Promise<ToolType[]>} An array of tools, defaults to empty array if not found or invalid.
+ */
+export async function loadTools(): Promise<ToolType[]> {
+  return (await readJsonFile<ToolType[]>(TOOLS_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of tools.
+ * @param {ToolType[]} tools - The array of tools to save.
+ * @returns {Promise<void>}
+ */
+export async function saveTools(tools: ToolType[]): Promise<void> {
+  await writeJsonFile<ToolType[]>(TOOLS_FILE, tools);
+}
+
+// --- Knowledge Base Data ---
+
+/**
+ * Loads the list of knowledge bases.
+ * @returns {Promise<KnowledgeBaseType[]>} An array of knowledge bases, defaults to empty array if not found or invalid.
+ */
+export async function loadKnowledgeBases(): Promise<KnowledgeBaseType[]> {
+  return (await readJsonFile<KnowledgeBaseType[]>(KNOWLEDGE_BASES_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of knowledge bases.
+ * @param {KnowledgeBaseType[]} knowledgeBases - The array of knowledge bases to save.
+ * @returns {Promise<void>}
+ */
+export async function saveKnowledgeBases(knowledgeBases: KnowledgeBaseType[]): Promise<void> {
+  await writeJsonFile<KnowledgeBaseType[]>(KNOWLEDGE_BASES_FILE, knowledgeBases);
+}
+
+// Add similar specific loaders/savers for mcp, channels index, etc. as needed

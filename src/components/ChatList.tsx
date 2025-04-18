@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react"; // Consolidated React imports
 import { useParams, Link } from "react-router-dom"; // Consolidated router imports
-import { Search, Settings, Plus, ChevronRight, ChevronDown, ChevronsUpDown } from "lucide-react"; // Consolidated Lucide imports
+import { Search, Settings, Plus, ChevronRight, ChevronDown, ChevronsUpDown, MessageSquarePlus } from "lucide-react"; // Consolidated Lucide imports
 import { mockChats, mockUsers, mockChannels } from "../data/mockData"; // Import mock data
 import { ChatType, ChannelType } from "../types"; // Import types
 import { Avatar } from "./Avatar"; // Import Avatar component
@@ -17,14 +17,8 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
   const currentUser = mockUsers["user3"]; // Assuming current user
 
   // Filter channels and chats based on selected workspace
-  const filteredChannels = useMemo(
-    () => mockChannels.filter((channel) => channel.workspaceId === selectedWorkspaceId),
-    [selectedWorkspaceId]
-  );
-  const filteredChats = useMemo(
-    () => mockChats.filter((chat) => chat.workspaceId === selectedWorkspaceId),
-    [selectedWorkspaceId]
-  );
+  const filteredChannels = useMemo(() => mockChannels.filter((channel) => channel.workspaceId === selectedWorkspaceId), [selectedWorkspaceId]);
+  const filteredChats = useMemo(() => mockChats.filter((chat) => chat.workspaceId === selectedWorkspaceId), [selectedWorkspaceId]);
 
   // State to track expanded channels
   const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set());
@@ -47,10 +41,9 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
   // Find the channel containing the selected chat
   const activeChannelId = useMemo(() => {
     if (!currentChatId) return null;
-    const chat = filteredChats.find(c => c.id === currentChatId);
+    const chat = filteredChats.find((c) => c.id === currentChatId);
     return chat?.channelId ?? null;
   }, [currentChatId, filteredChats]);
-
 
   // Toggle channel expansion
   const handleChannelToggle = (channelId: string) => {
@@ -103,16 +96,12 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
         <div className="flex items-center space-x-1">
           {/* Expand/Collapse All Button */}
           {filteredChannels.length > 0 && (
-            <button
-              title={expandedChannels.size === filteredChannels.length ? "Collapse All" : "Expand All"}
-              className={headerButtonClasses}
-              onClick={handleToggleAllChannels}
-            >
+            <button title={expandedChannels.size === filteredChannels.length ? "Collapse All" : "Expand All"} className={headerButtonClasses} onClick={handleToggleAllChannels}>
               <ChevronsUpDown size={16} />
             </button>
           )}
           {/* TODO: Implement Add Channel/Chat functionality */}
-          <button title="New Channel/Chat" className={headerButtonClasses}>
+          <button title="New Channel" className={headerButtonClasses} onClick={() => console.log("New Channel clicked")}>
             <Plus size={18} />
           </button>
         </div>
@@ -132,18 +121,35 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
             return (
               <div key={channel.id}>
                 {/* Channel Header (Clickable) */}
-                <div
-                  className={`${channelHeaderBaseClasses} ${headerDynamicClasses}`}
-                  onClick={() => handleChannelToggle(channel.id)}
-                  role="button"
-                  aria-expanded={isExpanded}
-                  aria-controls={`channel-content-${channel.id}`}
-                >
+                <div className={`${channelHeaderBaseClasses} ${headerDynamicClasses}`} onClick={() => handleChannelToggle(channel.id)} role="button" aria-expanded={isExpanded} aria-controls={`channel-content-${channel.id}`}>
                   <Icon
                     size={14}
                     className={`${channelIconClasses} ${iconDynamicClasses} ${isExpanded ? "rotate-0" : "-rotate-90"}`} // Combine base, active/default color, and rotation
                   />
-                  {channel.name}
+                  <span className="flex-grow truncate mr-2">{channel.name}</span> {/* Allow name to truncate */}
+                  {/* Add New Chat and Channel Settings Buttons */}
+                  <div className="flex items-center flex-shrink-0 ml-auto space-x-1">
+                    <button
+                      title="Channel Settings"
+                      className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--background-hover)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log(`Settings for ${channel.name}`);
+                      }} // Prevent channel toggle
+                    >
+                      <Settings size={14} />
+                    </button>
+                    <button
+                      title="New Chat in Channel"
+                      className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--background-hover)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        console.log(`New Chat in ${channel.name}`);
+                      }} // Prevent channel toggle
+                    >
+                      <MessageSquarePlus size={14} />
+                    </button>
+                  </div>
                 </div>
                 {/* Chats within the channel (Conditional Rendering) */}
                 <div
@@ -161,9 +167,7 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
           <p className={fallbackTextClasses}>No channels in this workspace yet.</p>
         )}
         {/* Fallback if no chats exist at all in the workspace (even if channels do) */}
-        {filteredChannels.length > 0 && filteredChats.length === 0 && (
-           <p className={fallbackTextClasses}>No discussions started in this workspace yet.</p>
-        )}
+        {filteredChannels.length > 0 && filteredChats.length === 0 && <p className={fallbackTextClasses}>No discussions started in this workspace yet.</p>}
       </div>
 
       {/* Search Bar */}

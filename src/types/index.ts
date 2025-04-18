@@ -1,67 +1,15 @@
-import { ReactNode } from "react";
+// src/types/index.ts - Barrel file for re-exporting all types
 
-// User related types
-export type UserStatus = "online" | "offline" | "away";
+export * from "./user";
+export * from "./message";
+export * from "./chat";
+export * from "./workspace";
+export * from "./channel";
+export * from "./context";
+export * from "./settings";
+export * from "./agent";
+export * from "./tool";
+export * from "./knowledge";
 
-export type UserType = {
-  id: string;
-  name: string;
-  avatar: string;
-  status: UserStatus;
-};
-
-// Message related types
-export type MessageType = {
-  id: string;
-  sender: UserType;
-  content: string;
-  timestamp: Date;
-  upvotes: number;
-  downvotes: number;
-};
-
-// Chat related types
-export type ChatTypeValue = "direct" | "group";
-
-export type ChatType = {
-  id: string;
-  type: ChatTypeValue;
-  name: string;
-  avatar?: string;
-  lastMessage?: string;
-  unreadCount?: number;
-  timestamp?: Date;
-  participants?: UserType[];
-  workspaceId: string; // Link chat to a workspace
-  channelId: string; // Link chat to a channel
-};
-
-// Workspace related types
-export type WorkspaceType = {
-  id: string;
-  name: string;
-  icon: ReactNode;
-};
-
-// Channel related types
-export type ChannelType = {
-  id: string;
-  name: string;
-  workspaceId: string; // Link channel to a workspace
-};
-
-// Context related types (if needed outside context file)
-export interface RightSidebarContextType {
-  isOpen: boolean;
-  openSidebar: (content: ReactNode) => void;
-  closeSidebar: () => void;
-  content: ReactNode;
-}
-
-// Settings related types
-export interface UserSettings {
-  name: string;
-  status: UserStatus; // Re-use existing UserStatus type
-  notificationsEnabled: boolean;
-  theme: 'Light' | 'Dark' | 'System';
-}
+// Add any other shared or common types here if needed,
+// or create a separate 'common.ts' and export from it.
