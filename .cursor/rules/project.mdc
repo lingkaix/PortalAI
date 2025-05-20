@@ -1,1 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
 MUST follow rules in `docs/vibe-rules.md` and `docs/vibe-rules-project.md`
