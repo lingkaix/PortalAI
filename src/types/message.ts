@@ -2,7 +2,7 @@
 import { UserType } from "./user"; // Import dependency
 
 /**
- * TODO: Represents a single message within a chat.
+ * TODO: Do we need a warp of a2a.Message?
  */
 export type MessageType = {
   id: string;

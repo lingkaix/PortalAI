@@ -1,33 +1,33 @@
 import { create } from "zustand";
-import { AgentType } from "../types";
+import { Agent } from "../types";
 import { readJsonFile, writeJsonFile } from "../lib/localAppData";
 import { generateId } from "../lib/utils"; // Import the centralized ID generator
 
 export const AGENTS_FILE = "agents.json";
 /**
  * Loads the list of agents.
- * @returns {Promise<AgentType[]>} An array of agents, defaults to empty array if not found or invalid.
+ * @returns {Promise<Agent[]>} An array of agents, defaults to empty array if not found or invalid.
  */
-export async function loadAgents(): Promise<AgentType[]> {
-  return (await readJsonFile<AgentType[]>(AGENTS_FILE, [])) ?? [];
+export async function loadAgents(): Promise<Agent[]> {
+  return (await readJsonFile<Agent[]>(AGENTS_FILE, [])) ?? [];
 }
 
 /**
  * Saves the list of agents.
- * @param {AgentType[]} agents - The array of agents to save.
+ * @param {Agent[]} agents - The array of agents to save.
  * @returns {Promise<void>}
  */
-export async function saveAgents(agents: AgentType[]): Promise<void> {
-  await writeJsonFile<AgentType[]>(AGENTS_FILE, agents);
+export async function saveAgents(agents: Agent[]): Promise<void> {
+  await writeJsonFile<Agent[]>(AGENTS_FILE, agents);
 }
 
 interface AgentState {
-  agents: AgentType[];
+  agents: Agent[];
   isLoading: boolean;
   error: string | null;
   loadAgents: () => Promise<void>;
-  addAgent: (newAgentData: Omit<AgentType, "id">) => Promise<void>;
-  updateAgent: (updatedAgent: AgentType) => Promise<void>;
+  addAgent: (newAgentData: Omit<Agent, "id">) => Promise<void>;
+  updateAgent: (updatedAgent: Agent) => Promise<void>;
   removeAgent: (agentId: string) => Promise<void>;
 }
 
@@ -50,7 +50,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
 
   addAgent: async (newAgentData) => {
     set({ isLoading: true, error: null });
-    const newAgent: AgentType = {
+    const newAgent: Agent = {
       ...newAgentData,
       id: generateId(), // Use the centralized ID generator
     };

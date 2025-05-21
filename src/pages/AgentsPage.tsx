@@ -2,7 +2,7 @@ import React, { useEffect } from "react";
 import { PageContent } from "../layouts/PageContent";
 import { GenericList } from "../components/GenericList"; // Import GenericList
 import { useAgentStore } from "../data/agentStore"; // Import the agent store hook
-import { AgentType } from "../types/agent"; // Import AgentType directly
+import { Agent } from "../types/agent"; // Import AgentType directly
 
 export const AgentsPage: React.FC = () => {
   // Use the Zustand store hook
@@ -17,7 +17,7 @@ export const AgentsPage: React.FC = () => {
   const handleAddItem = () => {
     console.log("Add new agent clicked");
     // Example: Add a new agent with default values (replace with modal/form)
-    const newAgent: Omit<AgentType, "id"> = {
+    const newAgent: Omit<Agent, "id"> = {
       // Use AgentType
       name: `New Agent ${agents.length + 1}`,
       description: "A newly created agent.",
@@ -56,7 +56,7 @@ export const AgentsPage: React.FC = () => {
       {" "}
       {/* Removed className */}
       {/* Render the GenericList component */}
-      <GenericList<AgentType> // Specify the type for the items
+      <GenericList<Agent> // Specify the type for the items
         title="Manage Agents"
         items={agents}
         onAddItem={handleAddItem}
