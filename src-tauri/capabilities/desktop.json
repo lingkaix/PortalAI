@@ -9,6 +9,14 @@
     "main"
   ],
   "permissions": [
-    "updater:default"
+    "core:default",
+    "opener:default",
+    "core:window:default",
+    "core:window:allow-start-dragging",
+    "updater:default",
+    "fs:default",
+    "fs:scope-appdata-recursive",
+    "fs:allow-appdata-read-recursive",
+    "fs:allow-appdata-write-recursive"
   ]
 }
