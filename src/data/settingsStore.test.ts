@@ -1,17 +1,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { useSettingsStore, SettingsState } from "./settingsStore"; // Import state type
-import * as dataManager from "../lib/dataManager"; // Import namespace to mock
+import { useSettingsStore, SettingsState, DEFAULT_SETTINGS, SETTINGS_FILE } from "./settingsStore"; // Import from settingsStore
+import * as localAppData from "../lib/localAppData"; // Import namespace to mock
 import { UserSettings, UserStatus } from "../types";
 import { act } from "react"; // Try importing act from react instead
 
-// --- Mock the dataManager module ---
-// We mock the specific functions used by the store
-vi.mock("../lib/dataManager", async (importOriginal) => {
-  const actual = await importOriginal<typeof dataManager>();
+// --- Mock the localAppData module ---
+vi.mock("../lib/localAppData", async (importOriginal) => {
+  const actual = await importOriginal<typeof localAppData>();
   return {
     ...actual, // Keep other exports like constants if needed
-    loadUserSettings: vi.fn(),
-    saveUserSettings: vi.fn(),
+    readJsonFile: vi.fn(),
+    writeJsonFile: vi.fn(),
   };
 });
 
@@ -20,34 +19,33 @@ vi.mock("../lib/dataManager", async (importOriginal) => {
 // Helper function to reset the store state before each test
 const resetStore = () => {
   // Reset Zustand store to initial state + defaults
-  // Merge default data back into the store, don't replace entirely
   useSettingsStore.setState({
-    ...dataManager.DEFAULT_SETTINGS, // Use the actual default settings
+    ...DEFAULT_SETTINGS, // Use the actual default settings from settingsStore
     isInitialized: false,
   });
 };
 
 describe("settingsStore", () => {
   // Cast the mocked functions for type safety in tests
-  const mockedLoadUserSettings = vi.mocked(dataManager.loadUserSettings);
-  const mockedSaveUserSettings = vi.mocked(dataManager.saveUserSettings);
+  const mockedReadJsonFile = vi.mocked(localAppData.readJsonFile<UserSettings>);
+  const mockedWriteJsonFile = vi.mocked(localAppData.writeJsonFile<UserSettings>);
 
   beforeEach(() => {
     // Reset mocks and store state before each test
     vi.resetAllMocks();
     resetStore();
 
-    // Default mock implementations for dataManager functions
-    mockedLoadUserSettings.mockResolvedValue({ ...dataManager.DEFAULT_SETTINGS }); // Load defaults by default
-    mockedSaveUserSettings.mockResolvedValue(undefined); // Save succeeds by default
+    // Default mock implementations for localAppData functions
+    mockedReadJsonFile.mockResolvedValue(DEFAULT_SETTINGS); // Load defaults by default
+    mockedWriteJsonFile.mockResolvedValue(undefined); // Save succeeds by default
   });
 
   it("should have correct initial state", () => {
     const state = useSettingsStore.getState();
-    expect(state.name).toBe(dataManager.DEFAULT_SETTINGS.name);
-    expect(state.status).toBe(dataManager.DEFAULT_SETTINGS.status);
-    expect(state.notificationsEnabled).toBe(dataManager.DEFAULT_SETTINGS.notificationsEnabled);
-    expect(state.theme).toBe(dataManager.DEFAULT_SETTINGS.theme);
+    expect(state.name).toBe(DEFAULT_SETTINGS.name);
+    expect(state.status).toBe(DEFAULT_SETTINGS.status);
+    expect(state.notificationsEnabled).toBe(DEFAULT_SETTINGS.notificationsEnabled);
+    expect(state.theme).toBe(DEFAULT_SETTINGS.theme);
     expect(state.isInitialized).toBe(false);
   });
 
@@ -59,7 +57,7 @@ describe("settingsStore", () => {
         notificationsEnabled: true,
         theme: "Dark",
       };
-      mockedLoadUserSettings.mockResolvedValue(loadedSettings);
+      mockedReadJsonFile.mockResolvedValue(loadedSettings);
 
       // Use act to wrap async state updates
       await act(async () => {
@@ -67,7 +65,7 @@ describe("settingsStore", () => {
       });
 
       const state = useSettingsStore.getState();
-      expect(mockedLoadUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedReadJsonFile).toHaveBeenCalledTimes(1);
       expect(state.name).toBe(loadedSettings.name);
       expect(state.status).toBe(loadedSettings.status);
       expect(state.notificationsEnabled).toBe(loadedSettings.notificationsEnabled);
@@ -85,22 +83,22 @@ describe("settingsStore", () => {
         await useSettingsStore.getState().loadSettings();
       });
 
-      expect(mockedLoadUserSettings).not.toHaveBeenCalled();
+      expect(mockedReadJsonFile).not.toHaveBeenCalled();
     });
 
     it("should keep default settings and set initialized if loading fails", async () => {
       // const loadError = new Error("Failed to read file");
-      // mockedLoadUserSettings.mockRejectedValue(loadError);
+      // mockedReadJsonFile.mockRejectedValue(loadError);
 
       await act(async () => {
         await useSettingsStore.getState().loadSettings();
       });
 
       const state = useSettingsStore.getState();
-      expect(mockedLoadUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedReadJsonFile).toHaveBeenCalledTimes(1);
       // State should remain as default settings
-      expect(state.name).toBe(dataManager.DEFAULT_SETTINGS.name);
-      expect(state.status).toBe(dataManager.DEFAULT_SETTINGS.status);
+      expect(state.name).toBe(DEFAULT_SETTINGS.name);
+      expect(state.status).toBe(DEFAULT_SETTINGS.status);
       // isInitialized should be true to prevent retries
       expect(state.isInitialized).toBe(true);
     });
@@ -111,7 +109,6 @@ describe("settingsStore", () => {
       const initialState = useSettingsStore.getState();
       const newEnabledValue = !initialState.notificationsEnabled;
 
-      // No need for act here as save is async but state update is sync
       const savePromise = useSettingsStore.getState().setNotificationsEnabled(newEnabledValue);
 
       // Check optimistic update
@@ -122,28 +119,31 @@ describe("settingsStore", () => {
         await savePromise;
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       // Check that the correct state was passed to save
       const expectedStateToSave: UserSettings = {
         ...initialState,
         notificationsEnabled: newEnabledValue,
       };
+      // Get the actual arguments passed to writeJsonFile
+      const [filePath, savedState] = mockedWriteJsonFile.mock.calls[0];
+      expect(filePath).toBe(SETTINGS_FILE);
       // Remove isInitialized and actions from the saved state check
-      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...savedState } = mockedSaveUserSettings.mock.calls[0][0] as SettingsState;
+      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...actualSavedState } = savedState as SettingsState;
       const { isInitialized: _i2, loadSettings: _l2, setNotificationsEnabled: _n2, setTheme: _t2, saveProfileSettings: _p2, _internalSetSettings: _int2, ...expectedState } = expectedStateToSave as SettingsState;
-      expect(savedState).toEqual(expectedState);
+      expect(actualSavedState).toEqual(expectedState);
     });
 
     it("should log error if saveUserSettings fails", async () => {
       const saveError = new Error("Failed to write");
-      mockedSaveUserSettings.mockRejectedValue(saveError);
+      mockedWriteJsonFile.mockRejectedValue(saveError);
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {}); // Spy on console.error
 
       await act(async () => {
         await useSettingsStore.getState().setNotificationsEnabled(true);
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save notification setting:", saveError);
 
       consoleErrorSpy.mockRestore(); // Restore console.error
@@ -163,27 +163,30 @@ describe("settingsStore", () => {
         await savePromise;
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       const expectedStateToSave: UserSettings = {
         ...initialState,
         theme: newThemeValue,
       };
+      // Get the actual arguments passed to writeJsonFile
+      const [filePath, savedState] = mockedWriteJsonFile.mock.calls[0];
+      expect(filePath).toBe(SETTINGS_FILE);
       // Remove isInitialized and actions from the saved state check
-      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...savedState } = mockedSaveUserSettings.mock.calls[0][0] as SettingsState;
+      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...actualSavedState } = savedState as SettingsState;
       const { isInitialized: _i2, loadSettings: _l2, setNotificationsEnabled: _n2, setTheme: _t2, saveProfileSettings: _p2, _internalSetSettings: _int2, ...expectedState } = expectedStateToSave as SettingsState;
-      expect(savedState).toEqual(expectedState);
+      expect(actualSavedState).toEqual(expectedState);
     });
 
     it("should log error if saveUserSettings fails", async () => {
       const saveError = new Error("Failed to write theme");
-      mockedSaveUserSettings.mockRejectedValue(saveError);
+      mockedWriteJsonFile.mockRejectedValue(saveError);
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await act(async () => {
         await useSettingsStore.getState().setTheme("Light");
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save theme setting:", saveError);
 
       consoleErrorSpy.mockRestore();
@@ -194,7 +197,7 @@ describe("settingsStore", () => {
     it("should update state optimistically and call saveUserSettings", async () => {
       const initialState = useSettingsStore.getState();
       const newName = "New Name";
-      const newStatus: UserStatus = "away"; // Use valid status
+      const newStatus: UserStatus = "away";
 
       const savePromise = useSettingsStore.getState().saveProfileSettings(newName, newStatus);
 
@@ -205,28 +208,31 @@ describe("settingsStore", () => {
         await savePromise;
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       const expectedStateToSave: UserSettings = {
         ...initialState,
         name: newName,
         status: newStatus,
       };
+      // Get the actual arguments passed to writeJsonFile
+      const [filePath, savedState] = mockedWriteJsonFile.mock.calls[0];
+      expect(filePath).toBe(SETTINGS_FILE);
       // Remove isInitialized and actions from the saved state check
-      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...savedState } = mockedSaveUserSettings.mock.calls[0][0] as SettingsState;
+      const { isInitialized: _i, loadSettings: _l, setNotificationsEnabled: _n, setTheme: _t, saveProfileSettings: _p, _internalSetSettings: _int, ...actualSavedState } = savedState as SettingsState;
       const { isInitialized: _i2, loadSettings: _l2, setNotificationsEnabled: _n2, setTheme: _t2, saveProfileSettings: _p2, _internalSetSettings: _int2, ...expectedState } = expectedStateToSave as SettingsState;
-      expect(savedState).toEqual(expectedState);
+      expect(actualSavedState).toEqual(expectedState);
     });
 
     it("should log error if saveUserSettings fails", async () => {
       const saveError = new Error("Failed to save profile");
-      mockedSaveUserSettings.mockRejectedValue(saveError);
+      mockedWriteJsonFile.mockRejectedValue(saveError);
       const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 
       await act(async () => {
         await useSettingsStore.getState().saveProfileSettings("Fail Name", "offline");
       });
 
-      expect(mockedSaveUserSettings).toHaveBeenCalledTimes(1);
+      expect(mockedWriteJsonFile).toHaveBeenCalledTimes(1);
       expect(consoleErrorSpy).toHaveBeenCalledWith("Failed to save profile settings:", saveError);
 
       consoleErrorSpy.mockRestore();
@@ -243,8 +249,8 @@ describe("settingsStore", () => {
 
       expect(useSettingsStore.getState().name).toBe("Internal Update");
       // Ensure other parts of state are preserved
-      expect(useSettingsStore.getState().status).toBe(dataManager.DEFAULT_SETTINGS.status);
-      expect(mockedSaveUserSettings).not.toHaveBeenCalled();
+      expect(useSettingsStore.getState().status).toBe(DEFAULT_SETTINGS.status);
+      expect(mockedWriteJsonFile).not.toHaveBeenCalled();
     });
   });
 });

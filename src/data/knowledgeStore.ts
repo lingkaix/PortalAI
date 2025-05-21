@@ -1,7 +1,28 @@
 import { create } from "zustand";
 import { KnowledgeBaseType } from "../types";
-import { loadKnowledgeBases, saveKnowledgeBases } from "../lib/dataManager";
+import { readJsonFile, writeJsonFile } from "../lib/localAppData";
 import { generateId } from "../lib/utils"; // Import the centralized ID generator
+
+// TODO
+export const KNOWLEDGE_BASES_FILE = "knowledge.json"; // Index file
+export const KNOWLEDGE_BASE_DIR = "knowledge"; // Dir for individual knowledge base content/files
+
+/**
+ * Loads the list of knowledge bases.
+ * @returns {Promise<KnowledgeBaseType[]>} An array of knowledge bases, defaults to empty array if not found or invalid.
+ */
+export async function loadKnowledgeBases(): Promise<KnowledgeBaseType[]> {
+  return (await readJsonFile<KnowledgeBaseType[]>(KNOWLEDGE_BASES_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of knowledge bases.
+ * @param {KnowledgeBaseType[]} knowledgeBases - The array of knowledge bases to save.
+ * @returns {Promise<void>}
+ */
+export async function saveKnowledgeBases(knowledgeBases: KnowledgeBaseType[]): Promise<void> {
+  await writeJsonFile<KnowledgeBaseType[]>(KNOWLEDGE_BASES_FILE, knowledgeBases);
+}
 
 interface KnowledgeState {
   knowledgeBases: KnowledgeBaseType[];

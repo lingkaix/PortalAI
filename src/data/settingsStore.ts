@@ -1,13 +1,39 @@
-import { create } from 'zustand';
-import { UserSettings, UserStatus } from '../types';
-import { loadUserSettings, saveUserSettings, DEFAULT_SETTINGS } from '../lib/dataManager';
+import { create } from "zustand";
+import { UserSettings, UserStatus } from "../types";
+import { readJsonFile, writeJsonFile } from "../lib/localAppData";
+export const SETTINGS_FILE = "settings.json";
+// Default settings (exported for use in settingsStore)
+export const DEFAULT_SETTINGS: UserSettings = {
+  name: "Me",
+  status: "online",
+  notificationsEnabled: false,
+  theme: "System",
+};
+/**
+ * Loads user settings, returning defaults if not found or invalid.
+ * @returns {Promise<UserSettings>}
+ */
+export async function loadUserSettings(): Promise<UserSettings> {
+  // Use the generic function, providing the specific path and a non-null default
+  return (await readJsonFile<UserSettings>(SETTINGS_FILE, DEFAULT_SETTINGS)) ?? DEFAULT_SETTINGS;
+}
 
-export interface SettingsState extends UserSettings { // Export the interface
+/**
+ * Saves user settings.
+ * @param {UserSettings} settings - The settings object to save.
+ * @returns {Promise<void>}
+ */
+export async function saveUserSettings(settings: UserSettings): Promise<void> {
+  // Use the generic function
+  await writeJsonFile<UserSettings>(SETTINGS_FILE, settings);
+}
+export interface SettingsState extends UserSettings {
+  // Export the interface
   // Actions
   _internalSetSettings: (settings: Partial<UserSettings>) => void;
   loadSettings: () => Promise<void>;
   setNotificationsEnabled: (enabled: boolean) => Promise<void>;
-  setTheme: (theme: UserSettings['theme']) => Promise<void>;
+  setTheme: (theme: UserSettings["theme"]) => Promise<void>;
   saveProfileSettings: (name: string, status: UserStatus) => Promise<void>;
   isInitialized: boolean; // Flag to track if settings have been loaded
 }

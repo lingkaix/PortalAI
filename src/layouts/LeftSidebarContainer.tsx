@@ -12,7 +12,7 @@ interface NavItemProps {
 }
 
 const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
-  const baseClasses = "flex flex-col items-center justify-center w-16 h-16 rounded-lg text-[var(--text-muted)] hover:bg-[var(--background-hover)] hover:text-[var(--text-primary)] transition-colors duration-150";
+  const baseClasses = "flex flex-col items-center justify-center w-12 h-12 rounded-lg text-[var(--text-muted)] hover:bg-[var(--background-hover)] hover:text-[var(--text-primary)] transition-colors duration-150";
   const activeClasses = "bg-[var(--background-selected)] text-[var(--text-primary)]"; // Style for active link
 
   return (
@@ -22,7 +22,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
       className={({ isActive }) => `${baseClasses} ${isActive ? activeClasses : ""}`}
     >
       <Icon size={24} className="mb-1" />
-      <span className="text-xs font-medium">{label}</span>
+      {/* <span className="text-xs font-medium">{label}</span> */}
     </NavLink>
   );
 };
@@ -30,7 +30,7 @@ const NavItem: React.FC<NavItemProps> = ({ to, icon: Icon, label }) => {
 
 export const LeftSidebarContainer: React.FC = () => {
   // Define class strings using CSS variables
-  const sidebarClasses = "w-20 bg-[var(--background-secondary)] border-r border-[var(--border-primary)] flex flex-col items-center py-3 space-y-1 flex-shrink-0 pt-8"; // Added pt-8 back
+  const sidebarClasses = "w-16 bg-[var(--background-secondary)] border-r border-[var(--border-primary)] flex flex-col items-center py-3 space-y-1 flex-shrink-0 pt-8"; // Added pt-8 back
   const navItemsContainerClasses = "flex-grow flex flex-col items-center space-y-2 mt-4"; // Container for nav items
   const bottomControlsClasses = "mt-auto flex flex-col items-center space-y-2 pb-2"; // Container for bottom controls
   const workspaceSwitcherClasses = "hidden flex items-center justify-center w-12 h-12 rounded-lg hover:bg-[var(--background-hover)] cursor-pointer transition-colors duration-150"; // Simple button style for now

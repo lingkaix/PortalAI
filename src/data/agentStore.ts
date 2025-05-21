@@ -1,7 +1,25 @@
 import { create } from "zustand";
 import { AgentType } from "../types";
-import { loadAgents, saveAgents } from "../lib/dataManager";
+import { readJsonFile, writeJsonFile } from "../lib/localAppData";
 import { generateId } from "../lib/utils"; // Import the centralized ID generator
+
+export const AGENTS_FILE = "agents.json";
+/**
+ * Loads the list of agents.
+ * @returns {Promise<AgentType[]>} An array of agents, defaults to empty array if not found or invalid.
+ */
+export async function loadAgents(): Promise<AgentType[]> {
+  return (await readJsonFile<AgentType[]>(AGENTS_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of agents.
+ * @param {AgentType[]} agents - The array of agents to save.
+ * @returns {Promise<void>}
+ */
+export async function saveAgents(agents: AgentType[]): Promise<void> {
+  await writeJsonFile<AgentType[]>(AGENTS_FILE, agents);
+}
 
 interface AgentState {
   agents: AgentType[];

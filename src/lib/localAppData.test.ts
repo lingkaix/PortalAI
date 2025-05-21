@@ -9,14 +9,9 @@ import {
   type DirEntry, // Import type for mocking readDir return
 } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
-// Import functions to test from dataManager
+// Import functions to test from localAppData
 import {
-  loadUserSettings,
-  saveUserSettings,
-  DEFAULT_SETTINGS,
-  SETTINGS_FILE, // Use constant
-  KNOWLEDGE_BASE_DIR, // Use constant for subdir test
-  getAppDataPath, // Also test this helper
+  getAppDataPath,
   readJsonFile,
   writeJsonFile,
   deleteDataFile,
@@ -24,8 +19,7 @@ import {
   deleteDataDir,
   ensureAppDataSubdir,
   _resetAppDataPathCache, // Import reset function for testing
-} from "./dataManager";
-import { UserSettings } from "../types";
+} from "./localAppData";
 
 // Mock the Tauri modules using factory functions
 vi.mock("@tauri-apps/plugin-fs", async (importOriginal) => {
@@ -60,9 +54,7 @@ vi.mock("@tauri-apps/api/path", async (importOriginal) => {
 });
 
 const MOCK_APP_DATA_DIR = "/mock/app/data";
-const MOCK_SETTINGS_PATH = `${MOCK_APP_DATA_DIR}/${SETTINGS_FILE}`;
-const MOCK_SETTINGS_PARENT_DIR = MOCK_APP_DATA_DIR; // Parent of settings.json is appDataDir
-const MOCK_SUBDIR_NAME = KNOWLEDGE_BASE_DIR;
+const MOCK_SUBDIR_NAME = "test-subdir";
 const MOCK_SUBDIR_PATH = `${MOCK_APP_DATA_DIR}/${MOCK_SUBDIR_NAME}`;
 const MOCK_FILE_IN_SUBDIR_PATH = `${MOCK_SUBDIR_PATH}/test.json`;
 const MOCK_FILE_IN_SUBDIR_PARENT_PATH = MOCK_SUBDIR_PATH;
@@ -83,8 +75,6 @@ describe("dataManager", () => {
       const joinedPath = validPaths.join("/");
 
       // Handle specific cases needed for tests
-      if (validPaths.join("/") === `${MOCK_APP_DATA_DIR}/${SETTINGS_FILE}`) return MOCK_SETTINGS_PATH;
-      if (validPaths.join("/") === `${MOCK_SETTINGS_PATH}/..`) return MOCK_SETTINGS_PARENT_DIR;
       if (validPaths.join("/") === `${MOCK_APP_DATA_DIR}/${MOCK_SUBDIR_NAME}`) return MOCK_SUBDIR_PATH;
       if (validPaths.join("/") === `${MOCK_SUBDIR_PATH}/test.json`) return MOCK_FILE_IN_SUBDIR_PATH;
       if (validPaths.join("/") === `${MOCK_FILE_IN_SUBDIR_PATH}/..`) return MOCK_FILE_IN_SUBDIR_PARENT_PATH;
@@ -178,29 +168,29 @@ describe("dataManager", () => {
       vi.mocked(exists).mockResolvedValue(true);
       vi.mocked(readTextFile).mockResolvedValue(testJsonString);
 
-      const data = await readJsonFile<{ key: string; count: number }>(SETTINGS_FILE);
+      const data = await readJsonFile<{ key: string; count: number }>(MOCK_SUBDIR_NAME);
 
       expect(data).toEqual(testData);
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      expect(exists).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
+      expect(readTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
 
     it("should return default value if file does not exist", async () => {
       vi.mocked(exists).mockResolvedValue(false);
       const defaultValue = { default: true };
 
-      const data = await readJsonFile(SETTINGS_FILE, defaultValue);
+      const data = await readJsonFile(MOCK_SUBDIR_NAME, defaultValue);
 
       expect(data).toEqual(defaultValue);
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      expect(exists).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
       expect(readTextFile).not.toHaveBeenCalled();
     });
 
     it("should throw error if file does not exist and no default value is provided", async () => {
       vi.mocked(exists).mockResolvedValue(false);
 
-      await expect(readJsonFile(SETTINGS_FILE, null)).rejects.toThrow(`File not found: ${SETTINGS_FILE}`);
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      await expect(readJsonFile(MOCK_SUBDIR_NAME, null)).rejects.toThrow(`File not found: ${MOCK_SUBDIR_NAME}`);
+      expect(exists).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
 
     it("should return default value if JSON parsing fails", async () => {
@@ -208,20 +198,20 @@ describe("dataManager", () => {
       vi.mocked(readTextFile).mockResolvedValue("invalid json");
       const defaultValue = { default: true };
 
-      const data = await readJsonFile(SETTINGS_FILE, defaultValue);
+      const data = await readJsonFile(MOCK_SUBDIR_NAME, defaultValue);
 
       expect(data).toEqual(defaultValue);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      expect(readTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
 
     it("should throw error if JSON parsing fails and no default value is provided", async () => {
       vi.mocked(exists).mockResolvedValue(true);
       vi.mocked(readTextFile).mockResolvedValue("invalid json");
 
-      await expect(readJsonFile(SETTINGS_FILE, null)).rejects.toThrow(
+      await expect(readJsonFile(MOCK_SUBDIR_NAME, null)).rejects.toThrow(
         /Error parsing JSON file/ // Match partial error message
       );
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      expect(readTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
 
     it("should return default value if readTextFile throws an error", async () => {
@@ -230,10 +220,10 @@ describe("dataManager", () => {
       vi.mocked(readTextFile).mockRejectedValue(readError);
       const defaultValue = { default: true };
 
-      const data = await readJsonFile(SETTINGS_FILE, defaultValue);
+      const data = await readJsonFile(MOCK_SUBDIR_NAME, defaultValue);
 
       expect(data).toEqual(defaultValue);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      expect(readTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
 
     it("should throw error if readTextFile throws and no default value is provided", async () => {
@@ -241,8 +231,8 @@ describe("dataManager", () => {
       vi.mocked(exists).mockResolvedValue(true);
       vi.mocked(readTextFile).mockRejectedValue(readError);
 
-      await expect(readJsonFile(SETTINGS_FILE, null)).rejects.toThrow(`Error reading file ${SETTINGS_FILE}: ${readError}`);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      await expect(readJsonFile(MOCK_SUBDIR_NAME, null)).rejects.toThrow(`Error reading file ${MOCK_SUBDIR_NAME}: ${readError}`);
+      expect(readTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
   });
 
@@ -276,13 +266,13 @@ describe("dataManager", () => {
     it("should write data to a file when parent directory already exists", async () => {
       vi.mocked(exists).mockResolvedValue(true); // Assume appDataDir and parent dir exist
 
-      await writeJsonFile(SETTINGS_FILE, testData);
+      await writeJsonFile(MOCK_SUBDIR_NAME, testData);
 
-      expect(join).toHaveBeenCalledWith(MOCK_APP_DATA_DIR, SETTINGS_FILE);
-      expect(join).toHaveBeenCalledWith(MOCK_SETTINGS_PATH, "..");
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PARENT_DIR); // Check parent exists
+      expect(join).toHaveBeenCalledWith(MOCK_APP_DATA_DIR, MOCK_SUBDIR_NAME);
+      expect(join).toHaveBeenCalledWith(MOCK_SUBDIR_PATH, "..");
+      expect(exists).toHaveBeenCalledWith(MOCK_APP_DATA_DIR); // Check parent exists
       expect(create).not.toHaveBeenCalled(); // Parent exists, no creation needed
-      expect(writeTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH, testJsonString);
+      expect(writeTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH, testJsonString);
       expect(writeTextFile).toHaveBeenCalledTimes(1);
     });
 
@@ -304,9 +294,9 @@ describe("dataManager", () => {
       vi.mocked(exists).mockResolvedValue(true); // Assume parent dir exists
       vi.mocked(writeTextFile).mockRejectedValue(writeError);
 
-      await expect(writeJsonFile(SETTINGS_FILE, testData)).rejects.toThrow(`Error writing file ${SETTINGS_FILE}: ${writeError}`);
+      await expect(writeJsonFile(MOCK_SUBDIR_NAME, testData)).rejects.toThrow(`Error writing file ${MOCK_SUBDIR_NAME}: ${writeError}`);
       expect(create).not.toHaveBeenCalled(); // Parent exists
-      expect(writeTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH, testJsonString);
+      expect(writeTextFile).toHaveBeenCalledWith(MOCK_SUBDIR_PATH, testJsonString);
     });
   });
 
@@ -314,16 +304,16 @@ describe("dataManager", () => {
   describe("deleteDataFile", () => {
     it("should delete the file if it exists", async () => {
       vi.mocked(exists).mockResolvedValue(true);
-      await deleteDataFile(SETTINGS_FILE);
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
-      expect(remove).toHaveBeenCalledWith(MOCK_SETTINGS_PATH); // Use remove
+      await deleteDataFile(MOCK_SUBDIR_NAME);
+      expect(exists).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
+      expect(remove).toHaveBeenCalledWith(MOCK_SUBDIR_PATH); // Use remove
       expect(remove).toHaveBeenCalledTimes(1);
     });
 
     it("should not attempt deletion if file does not exist", async () => {
       vi.mocked(exists).mockResolvedValue(false);
-      await deleteDataFile(SETTINGS_FILE);
-      expect(exists).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      await deleteDataFile(MOCK_SUBDIR_NAME);
+      expect(exists).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
       expect(remove).not.toHaveBeenCalled();
     });
 
@@ -332,8 +322,8 @@ describe("dataManager", () => {
       vi.mocked(exists).mockResolvedValue(true);
       vi.mocked(remove).mockRejectedValue(deleteError); // Mock remove failure
 
-      await expect(deleteDataFile(SETTINGS_FILE)).rejects.toThrow(`Error deleting file ${SETTINGS_FILE}: ${deleteError}`);
-      expect(remove).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
+      await expect(deleteDataFile(MOCK_SUBDIR_NAME)).rejects.toThrow(`Error deleting file ${MOCK_SUBDIR_NAME}: ${deleteError}`);
+      expect(remove).toHaveBeenCalledWith(MOCK_SUBDIR_PATH);
     });
   });
 
@@ -406,55 +396,5 @@ describe("dataManager", () => {
       await expect(deleteDataDir(MOCK_SUBDIR_NAME)).rejects.toThrow(`Error deleting directory ${MOCK_SUBDIR_NAME}: ${deleteError}`);
       expect(remove).toHaveBeenCalledWith(MOCK_SUBDIR_PATH, { recursive: true });
     });
-  });
-
-  // --- loadUserSettings ---
-  describe("loadUserSettings", () => {
-    it("should load settings using readJsonFile", async () => {
-      const loadedSettings: UserSettings = { name: "Loaded User", status: "away", notificationsEnabled: true, theme: "Dark" };
-      vi.mocked(exists).mockResolvedValue(true);
-      vi.mocked(readTextFile).mockResolvedValue(JSON.stringify(loadedSettings));
-
-      const settings = await loadUserSettings();
-
-      expect(settings).toEqual(loadedSettings);
-      expect(join).toHaveBeenCalledWith(MOCK_APP_DATA_DIR, SETTINGS_FILE);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
-    });
-
-    it("should return default settings if file does not exist", async () => {
-      vi.mocked(exists).mockResolvedValue(false);
-
-      const settings = await loadUserSettings();
-
-      expect(settings).toEqual(DEFAULT_SETTINGS);
-      expect(readTextFile).not.toHaveBeenCalled();
-    });
-
-    it("should return default settings if file content is invalid", async () => {
-      vi.mocked(exists).mockResolvedValue(true);
-      vi.mocked(readTextFile).mockResolvedValue("invalid json");
-
-      const settings = await loadUserSettings();
-
-      expect(settings).toEqual(DEFAULT_SETTINGS);
-      expect(readTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH);
-    });
-  });
-
-  // --- saveUserSettings ---
-  describe("saveUserSettings", () => {
-    it("should save settings using writeJsonFile", async () => {
-      const settingsToSave: UserSettings = { name: "Saved User", status: "away", notificationsEnabled: false, theme: "Light" }; // Changed "busy" to "away"
-      const expectedJson = JSON.stringify(settingsToSave, null, 2);
-      vi.mocked(exists).mockResolvedValue(true); // Assume parent dir exists
-
-      await saveUserSettings(settingsToSave);
-
-      expect(join).toHaveBeenCalledWith(MOCK_APP_DATA_DIR, SETTINGS_FILE);
-      expect(writeTextFile).toHaveBeenCalledWith(MOCK_SETTINGS_PATH, expectedJson);
-    });
-
-    // Error cases are covered by writeJsonFile tests
   });
 });

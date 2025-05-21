@@ -1,7 +1,27 @@
 import { create } from "zustand";
 import { ToolType } from "../types";
-import { loadTools, saveTools } from "../lib/dataManager";
+import { readJsonFile, writeJsonFile } from "../lib/localAppData";
 import { generateId } from "../lib/utils"; // Import the centralized ID generator
+
+export const TOOLS_FILE = "tools.json"; // for built-in tools
+export const MCP_FILE = "mcp.json";
+
+/**
+ * Loads the list of tools.
+ * @returns {Promise<ToolType[]>} An array of tools, defaults to empty array if not found or invalid.
+ */
+export async function loadTools(): Promise<ToolType[]> {
+  return (await readJsonFile<ToolType[]>(TOOLS_FILE, [])) ?? [];
+}
+
+/**
+ * Saves the list of tools.
+ * @param {ToolType[]} tools - The array of tools to save.
+ * @returns {Promise<void>}
+ */
+export async function saveTools(tools: ToolType[]): Promise<void> {
+  await writeJsonFile<ToolType[]>(TOOLS_FILE, tools);
+}
 
 interface ToolState {
   tools: ToolType[];
