@@ -2,6 +2,8 @@ secrets/*
 docs/references/*
 !docs/references/readme.md
 
+.env
+
 .vite-node
 # Logs
 logs
