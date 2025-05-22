@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Context Provider
 import { RightSidebarProvider } from './contexts/RightSidebarContext';
 import { useSettingsStore } from './data/settingsStore'; // Import settings store
+import { useAgentStore } from './data/agentStore'; // Import agent store
 
 // Layout Components
 import { LeftSidebarContainer } from './layouts/LeftSidebarContainer';
@@ -24,9 +25,10 @@ import { TitleBar } from './components/TitleBar';
 
 // Main Application Component
 const App: React.FC = () => {
-  // Load settings when the app mounts
+  // Load settings and agents when the app mounts
   useEffect(() => {
     useSettingsStore.getState().loadSettings();
+    useAgentStore.getState().loadAgent();
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
