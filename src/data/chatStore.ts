@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { CoreMessage, createCoreMessage, isTextPart } from "../types/message";
+import { CoreMessage, newMessage } from "../types/message";
 import { ChatType } from "../types/chat";
-import { generateId } from "../lib/utils";
+import { readJsonFile, writeJsonFile } from "../lib/localAppData";
+import { generateId } from "../lib/utils"; // Import the centralized ID generator
 
 // --- Persistence Layer Interface (re-defined here for clarity or import from a shared types/interfaces file) ---
 export interface ChatPersistence {

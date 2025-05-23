@@ -6,6 +6,12 @@ import {
   Artifact as A2AArtifact, // For AgentTaskUpdatePayload
 } from "./a2a";
 
+export type CoreMessage = ContentMessage | UserJoinedChatMessage | UserLeftChatMessage
+  | UserInvitedToChatMessage | ChatMetadataUpdatedMessage | ChannelCreatedMessage | ChannelDeletedMessage
+  | MessageEditedMessage | MessageDeletedMessage | ReactionAddedMessage | ReactionRemovedMessage
+  | MessagePinnedMessage | MessageUnpinnedMessage | SystemNotificationMessage | AgentActionRequestMessage
+  | AgentActionResponseMessage | AgentTaskUpdateMessage | CustomActivityMessage;
+
 // --- ActivityType Enum (Defines the nature of the CoreMessage) ---
 export enum ActivityType {
   // Standard Communication
@@ -34,7 +40,7 @@ export enum ActivityType {
   AGENT_ACTION_RESPONSE = "agent_action_response",// Agent's response/confirmation to an action request.
   AGENT_TASK_UPDATE = "agent_task_update",    // Agent provides an update on a background task
 
-  // Fallback/Custom for extensibility
+  // Fallback/Custom for extensibility, for future use
   CUSTOM_ACTIVITY = "custom_activity",
 }
 
@@ -82,7 +88,7 @@ export interface CustomActivityPayload { customType: string; data: Record<string
 
 
 // --- CoreMessage Definition (Independent of A2AMessage structure) ---
-export interface CoreMessage {
+export interface BaseMessage {
   messageId: string;        // Unique ID for this message/event (UUID v7 recommended)
   clientMessageId?: string; // Optional: client-generated ID for optimistic updates
 
@@ -96,19 +102,21 @@ export interface CoreMessage {
 
   timestamp: string;        // ISO 8601 string: when the event was created/processed by the system
 
-  activityType: ActivityType; // The primary type of event this message represents
+  type: ActivityType; // The primary type of event this message represents
+  payload?: Record<string, any> | Part[]; // Typed by interfaces above based on `type`.
 
-  // --- Content & Activity-Specific Data ---
+  // --- General Purpose Metadata ---
+  // For any other custom data, versioning, source system info, trace IDs etc.
+  // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
+  metadata?: Record<string, any>;
+}
+
+export interface ContentMessage extends BaseMessage {
+  type: ActivityType.CONTENT_MESSAGE;
   // `parts` will hold the primary content, structured as A2A Parts.
   // For activities (like USER_JOINED), `parts` might be empty or contain a system-generated summary,
   // while `activityPayload` holds the structured data.
-  parts?: Part[]; // Uses A2A Part types directly.
-  // For FilePart, enrich with AppFilePartMetadata in its `metadata` field.
-  // For DataPart, use AppDataPartMetadata for hints.
-
-  activityPayload?: Record<string, any>; // Typed by interfaces above based on `activityType`.
-  // e.g., if activityType is USER_JOINED_CHAT, this is UserJoinedChatPayload.
-
+  payload: Part[];
   // --- Interaction & Lifecycle State ---
   reactions?: Array<{ emoji: string; userIds: string[]; count: number; }>;
   isEdited?: boolean;
@@ -133,9 +141,72 @@ export interface CoreMessage {
   }>;
   moderationStatus?: 'approved' | 'rejected' | 'pending_manual_review' | 'auto_flagged';
   sensitivity?: 'confidential' | 'internal_only' | 'public'; // Data sensitivity classification
-
-  // --- General Purpose Metadata ---
-  // For any other custom data, versioning, source system info, trace IDs etc.
-  // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
-  metadata?: Record<string, any>;
+}
+export interface UserJoinedChatMessage extends BaseMessage {
+  type: ActivityType.USER_JOINED_CHAT;
+  payload: UserJoinedChatPayload;
+}
+export interface UserLeftChatMessage extends BaseMessage {
+  type: ActivityType.USER_LEFT_CHAT;
+  payload: UserLeftChatPayload;
+}
+export interface UserInvitedToChatMessage extends BaseMessage {
+  type: ActivityType.USER_INVITED_TO_CHAT;
+  payload: UserInvitedToChatPayload;
+}
+export interface ChatMetadataUpdatedMessage extends BaseMessage {
+  type: ActivityType.CHAT_METADATA_UPDATED;
+  payload: ChatMetadataUpdatedPayload;
+}
+export interface ChannelCreatedMessage extends BaseMessage {
+  type: ActivityType.CHANNEL_CREATED;
+  payload: ChannelCreatedPayload;
+}
+export interface ChannelDeletedMessage extends BaseMessage {
+  type: ActivityType.CHANNEL_DELETED;
+  payload: ChannelDeletedPayload;
+}
+export interface MessageEditedMessage extends BaseMessage {
+  type: ActivityType.MESSAGE_EDITED;
+  payload: MessageEditedPayload;
+}
+export interface MessageDeletedMessage extends BaseMessage {
+  type: ActivityType.MESSAGE_DELETED;
+  payload: MessageDeletedPayload;
+}
+export interface ReactionAddedMessage extends BaseMessage {
+  type: ActivityType.REACTION_ADDED;
+  payload: ReactionAddedPayload;
+}
+export interface ReactionRemovedMessage extends BaseMessage {
+  type: ActivityType.REACTION_REMOVED;
+  payload: ReactionRemovedPayload;
+}
+export interface MessagePinnedMessage extends BaseMessage {
+  type: ActivityType.MESSAGE_PINNED;
+  payload: MessagePinnedPayload;
+}
+export interface MessageUnpinnedMessage extends BaseMessage {
+  type: ActivityType.MESSAGE_UNPINNED;
+  payload: MessageUnpinnedPayload;
+}
+export interface SystemNotificationMessage extends BaseMessage {
+  type: ActivityType.SYSTEM_NOTIFICATION;
+  payload: SystemNotificationPayload;
+}
+export interface AgentActionRequestMessage extends BaseMessage {
+  type: ActivityType.AGENT_ACTION_REQUEST;
+  payload: AgentActionRequestPayload;
+}
+export interface AgentActionResponseMessage extends BaseMessage {
+  type: ActivityType.AGENT_ACTION_RESPONSE;
+  payload: AgentActionResponsePayload;
+}
+export interface AgentTaskUpdateMessage extends BaseMessage {
+  type: ActivityType.AGENT_TASK_UPDATE;
+  payload: AgentTaskUpdatePayload;
+}
+export interface CustomActivityMessage extends BaseMessage {
+  type: ActivityType.CUSTOM_ACTIVITY;
+  payload: CustomActivityPayload;
 }
