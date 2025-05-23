@@ -13,4 +13,4 @@ To make changes easy to track and revise, please try your best to follow this co
 * **refactor**: refactoring production code, eg. renaming a variable
 * **test**: adding missing tests, refactoring tests, etc., no production code change
 * **chore**: updating build scripts or tasks etc., no production code change
-* **dev**: this indicates that the change is just a step during the agile development
+* **dev**: this indicates that the change is just a step during the agile development, use this to just record the change
