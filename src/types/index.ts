@@ -1,5 +1,4 @@
 // src/types/index.ts - Barrel file for re-exporting all types
-export * from "./a2a";
 export * from "./user";
 export * from "./message";
 export * from "./chat";

@@ -1,179 +1,141 @@
 // src/types/message.ts
-import { Message as A2AMessage, Part as A2APart, TextPart as A2ATextPart } from "./a2a";
-import { generateId } from "../lib/utils"; // Assuming utils is in ../lib
+import {
+  TextPart as A2ATextPart,
+  FilePart as A2AFilePart,
+  DataPart as A2ADataPart,
+  Artifact as A2AArtifact, // For AgentTaskUpdatePayload
+} from "./a2a";
 
-/**
- * CoreMessage is the central message type for the application.
- * It serves for:
- *  - Internal state management (chats, tasks).
- *  - Persistent storage.
- *  - UI representation.
- *  - Communication with A2A compliant agents (it's directly compatible).
- *  - Base for conversion to/from AI SDK message types.
- *
- * It directly uses the A2A Message structure and enriches its metadata
- * for application-specific needs and easier access to common fields.
- */
-export interface CoreMessage extends A2AMessage {
-  // A2AMessage already has: messageId, role, parts, kind, metadata, referenceTaskIds, taskId, contextId
+// --- ActivityType Enum (Defines the nature of the CoreMessage) ---
+export enum ActivityType {
+  // Standard Communication
+  CONTENT_MESSAGE = "content_message",          // User/Agent content message, it may contain text, files, or structured data (e.g., rich content)
 
-  // We'll ensure specific fields are typed within metadata for consistency.
-  metadata: A2AMessage['metadata'] & {
-    senderId: string;       // ID of the user or agent who sent the message (maps to UserType.id or Agent.id)
-    timestamp: string;      // ISO 8601 string timestamp of when the message was created/received locally
+  // Membership & Chat/Channel Management
+  USER_JOINED_CHAT = "user_joined_chat",
+  USER_LEFT_CHAT = "user_left_chat",
+  USER_INVITED_TO_CHAT = "user_invited_to_chat",
+  CHAT_METADATA_UPDATED = "chat_metadata_updated", // e.g., name, topic, avatar of the chat
+  CHANNEL_CREATED = "channel_created",          // System event indicating a new channel/chat was made
+  CHANNEL_DELETED = "channel_deleted",
 
-    // Optional fields for AI SDK interop or UI needs:
-    originalSdkRole?: 'user' | 'assistant' | 'system' | 'function' | 'tool'; // If converted from AI SDK
-    clientMessageId?: string; // A client-generated ID for optimistic updates before server ID is known
-    uiState?: 'pending' | 'sent' | 'delivered' | 'read' | 'failed'; // For UI rendering status
-    // Add other standardized metadata as needed
-  };
+  // Message Interactions
+  MESSAGE_EDITED = "message_edited",
+  MESSAGE_DELETED = "message_deleted",      // Soft deletion of a target message
+  REACTION_ADDED = "reaction_added",
+  REACTION_REMOVED = "reaction_removed",
+  MESSAGE_PINNED = "message_pinned",
+  MESSAGE_UNPINNED = "message_unpinned",
 
-  // Ensuring these are present, even if optional in A2A base for some contexts.
-  // For our CoreMessage, a message usually belongs to a chat (contextId) and potentially a task.
-  contextId: string; // The primaryContextId of the ChatType this message belongs to.
-  taskId?: string;    // Optional: if this message is directly part of a specific task within the chat.
+  // System, Moderation & Agent-Specific Actions
+  SYSTEM_NOTIFICATION = "system_notification",  // Generic notification from the system
+  AGENT_ACTION_REQUEST = "agent_action_request",// User explicitly requests an agent to do something (e.g., /ban @user)
+  // The payload would detail the action.
+  AGENT_ACTION_RESPONSE = "agent_action_response",// Agent's response/confirmation to an action request.
+  AGENT_TASK_UPDATE = "agent_task_update",    // Agent provides an update on a background task
+
+  // Fallback/Custom for extensibility
+  CUSTOM_ACTIVITY = "custom_activity",
 }
 
-// --- Type Guards & Utility Functions ---
-
-export function isTextPart(part: A2APart): part is A2ATextPart {
-  return part.kind === 'text';
+// --- Application-Specific Metadata for A2APart ---
+// These interfaces define how we might structure the `metadata` field within A2A parts
+// for our application's internal use, e.g., for caching or UI hints.
+export interface AppFilePartMetadata {
+  localCachePath?: string;    // Path to a locally cached version of the file
+  thumbnailUrl?: string;      // URL or local path to a thumbnail for image/video
+  blurhash?: string;          // For image placeholders
+  uploadProgress?: number;    // 0-100 if it's an ongoing upload from the client
+  errorCode?: string | number;// If file processing/upload failed for this part
+  // ... other app-specific file details
 }
+export interface DataPartMetadata {
+  renderHint?: string; // e.g., "adaptive_card_v1.2", "slack_block_kit"
+  layoutId?: string; // Identifier for a pre-defined layout template for rich content
+  // ... other app-specific data part details
+}
+export type TextPart = A2ATextPart
+export type FilePart = A2AFilePart & { metadata?: { _PortalAppFile: AppFilePartMetadata } }
+export type DataPart = A2ADataPart & { metadata?: { _PortalAppData: DataPartMetadata } }
+export type Part = TextPart | FilePart | DataPart
 
-/**
- * Helper to create a CoreMessage, ensuring all required fields are present.
- */
-export function createCoreMessage({
-  content,
-  role,
-  senderId,
-  contextId, // The Chat's primaryContextId
-  messageId,
-  taskId,
-  parts,
-  metadata = {},
-  referenceTaskIds,
-  kind = "message",
-}: {
-  content?: string; // Simplified: creates a single TextPart if provided
-  role: 'user' | 'agent';
-  senderId: string;
-  contextId: string;
-  messageId?: string;
-  taskId?: string;
-  parts?: A2APart[];
+// --- Activity Payload Interfaces (for CoreMessage.activityPayload) ---
+// These describe the structured data for specific activity types.
+export interface UserJoinedChatPayload { joinedUserId: string; invitedByUserId?: string; method?: 'invitation' | 'link' | 'added_by_admin'; }
+export interface UserLeftChatPayload { leftUserId: string; removedByUserId?: string; reason?: string; }
+export interface UserInvitedToChatPayload { invitedUserId: string; invitedByUserId: string; message?: string; }
+export interface ChatMetadataUpdatedPayload { updatedFields: Array<keyof ChatMetadataFields>; oldValues?: Partial<ChatMetadataFields>; newValues: Partial<ChatMetadataFields>; }
+export interface ChatMetadataFields { name?: string; topic?: string; avatarUrl?: string; isPrivate?: boolean; } // Helper for above
+export interface ChannelCreatedPayload { channelId: string; name: string; creatorId: string; isPrivate?: boolean; members?: string[]; }
+export interface ChannelDeletedPayload { channelId: string; deleterId: string; reason?: string; }
+export interface MessageEditedPayload { targetMessageId: string; /* New content is in the CoreMessage.parts */ }
+export interface MessageDeletedPayload { targetMessageId: string; /* This is a soft delete marker for targetMessageId */ }
+export interface ReactionAddedPayload { targetMessageId: string; emoji: string; /* Reactor is senderId */ }
+export interface ReactionRemovedPayload { targetMessageId: string; emoji: string; /* Remover is senderId */ }
+export interface MessagePinnedPayload { targetMessageId: string; }
+export interface MessageUnpinnedPayload { targetMessageId: string; }
+export interface SystemNotificationPayload { title?: string; text: string; level?: 'info' | 'warning' | 'error' | 'success'; requiresAck?: boolean; detailsUrl?: string; }
+export interface AgentActionRequestPayload { command: string; targetAgentId?: string; params?: Record<string, any>; requestSource?: 'user_typed' | 'ui_button'; }
+export interface AgentActionResponsePayload { originalRequestId: string; status: 'success' | 'failure' | 'pending'; details?: string | Record<string, any>; resultingArtifacts?: A2AArtifact[]; }
+export interface AgentTaskUpdatePayload { taskId: string; status?: string; progress?: number; description?: string; artifacts?: A2AArtifact[]; }
+export interface CustomActivityPayload { customType: string; data: Record<string, any>; }
+
+
+// --- CoreMessage Definition (Independent of A2AMessage structure) ---
+export interface CoreMessage {
+  messageId: string;        // Unique ID for this message/event (UUID v7 recommended)
+  clientMessageId?: string; // Optional: client-generated ID for optimistic updates
+
+  workspaceId: string;      // ID of the workspace
+  channelId?: string;        // ID of the channel this message belongs to
+  chatId: string;           // ID of the chat/channel this message belongs to
+  taskId?: string;         // If part of a task, ID of the root message of the task
+
+  senderId: string;         // ID of the User, Agent, or special "system" ID
+  senderType: 'user' | 'agent' | 'system';
+
+  timestamp: string;        // ISO 8601 string: when the event was created/processed by the system
+
+  activityType: ActivityType; // The primary type of event this message represents
+
+  // --- Content & Activity-Specific Data ---
+  // `parts` will hold the primary content, structured as A2A Parts.
+  // For activities (like USER_JOINED), `parts` might be empty or contain a system-generated summary,
+  // while `activityPayload` holds the structured data.
+  parts?: Part[]; // Uses A2A Part types directly.
+  // For FilePart, enrich with AppFilePartMetadata in its `metadata` field.
+  // For DataPart, use AppDataPartMetadata for hints.
+
+  activityPayload?: Record<string, any>; // Typed by interfaces above based on `activityType`.
+  // e.g., if activityType is USER_JOINED_CHAT, this is UserJoinedChatPayload.
+
+  // --- Interaction & Lifecycle State ---
+  reactions?: Array<{ emoji: string; userIds: string[]; count: number; }>;
+  isEdited?: boolean;
+  editHistory?: Array<{ editorUserId: string; editedAt: string; previousPartsHash?: string; }>; // Hash of A2APart[]
+  isDeleted?: boolean; // Soft delete flag for this message itself
+  deletedInfo?: { deletedByUserId: string; deletedAt: string; };
+
+  // --- Relational & Contextual Info ---
+  replyToMessageId?: string;
+  relatedA2ATaskIds?: string[]; // IDs of A2A tasks this message might be relevant to or trigger
+
+  // --- UI & Client-Side State ---
+  uiState?: 'sending' | 'sent' | 'delivered_to_server' | 'delivered_to_recipient' | 'viewed' | 'failed_to_send' | 'pending_retry';
+  isPinned?: boolean;
+
+  // --- Safety, Moderation, Security ---
+  safetyRatings?: Array<{
+    provider: string; // e.g., "google_perspective", "openai_moderation"
+    category: string; // e.g., "HATE_SPEECH", "SELF_HARM"
+    severityScore?: number; // 0.0 - 1.0
+    isBlocked?: boolean;
+  }>;
+  moderationStatus?: 'approved' | 'rejected' | 'pending_manual_review' | 'auto_flagged';
+  sensitivity?: 'confidential' | 'internal_only' | 'public'; // Data sensitivity classification
+
+  // --- General Purpose Metadata ---
+  // For any other custom data, versioning, source system info, trace IDs etc.
+  // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
   metadata?: Record<string, any>;
-  referenceTaskIds?: string[];
-  kind?: "message"; // a2a.Message specifies 'message' as kind
-}): CoreMessage {
-  const msgId = messageId || generateId();
-  const finalParts = parts || (content !== undefined ? [{ kind: 'text', text: content } as A2ATextPart] : []);
-
-  if (finalParts.length === 0) {
-    throw new Error("Message content or parts must be provided.");
-  }
-
-  return {
-    messageId: msgId,
-    role,
-    parts: finalParts,
-    kind,
-    metadata: {
-      senderId,
-      timestamp: new Date().toISOString(),
-      ...metadata, // Allow overriding or adding more metadata from input
-    },
-    contextId,
-    taskId,
-    referenceTaskIds,
-  };
-}
-
-
-// --- AI SDK Conversion Utilities ---
-
-/**
- * Converts an AI SDK Message (from 'ai' or '@ai-sdk/react') to a CoreMessage.
- * Requires contextId to be provided.
- */
-export function sdkMessageToCoreMessage(
-  sdkMsg: {
-    id: string;
-    role: 'user' | 'assistant' | 'system' | 'function' | 'tool';
-    content: string;
-    createdAt?: Date;
-    // tool_calls, tool_call_id, name (for function/tool calls) can be added if needed
-  },
-  senderId: string, // Explicitly provide the senderId (e.g., current user ID or agent ID)
-  chatContextId: string, // The primaryContextId of the chat this message belongs to
-  associatedTaskId?: string,
-): CoreMessage {
-  const messageId = sdkMsg.id || generateId();
-  const timestamp = sdkMsg.createdAt?.toISOString() || new Date().toISOString();
-
-  let coreRole: 'user' | 'agent' = 'agent';
-  if (sdkMsg.role === 'user') {
-    coreRole = 'user';
-  } else if (sdkMsg.role === 'system') {
-    // System messages can be mapped to 'agent' with a special senderId like 'system'
-    // Or handled differently based on application logic.
-    // For now, mapping to agent. SenderId should be 'system' or similar.
-    coreRole = 'agent';
-  }
-  // 'assistant', 'function', 'tool' roles from AI SDK map to 'agent' in CoreMessage.
-  // Specifics of function/tool calls would need to be in `parts` (e.g. as DataPart) or metadata.
-
-  return {
-    messageId,
-    role: coreRole,
-    parts: [{ kind: 'text', text: sdkMsg.content } as A2ATextPart],
-    kind: 'message',
-    metadata: {
-      senderId,
-      timestamp,
-      originalSdkRole: sdkMsg.role,
-      clientMessageId: sdkMsg.id, // AI SDK id can serve as clientMessageId if generated on client
-    },
-    contextId: chatContextId,
-    taskId: associatedTaskId,
-  };
-}
-
-/**
- * Converts a CoreMessage to an AI SDK-compatible message object (for useChat hook).
- * This is potentially lossy if CoreMessage contains non-text parts or complex data
- * not representable in the basic AI SDK Message structure.
- */
-export function coreMessageToSdkMessage(coreMsg: CoreMessage): {
-  id: string;
-  role: 'user' | 'assistant' | 'system'; // AI SDK limited roles
-  content: string;
-  createdAt: Date;
-  // display?: React.ReactNode; // For custom UI rendering in AI SDK if needed
-} {
-  const content = coreMsg.parts
-    .filter(isTextPart)
-    .map(part => part.text)
-    .join('\n'); // Join multiple text parts, or take the first.
-
-  let sdkRole: 'user' | 'assistant' | 'system' = 'assistant'; // Default for 'agent'
-  if (coreMsg.role === 'user') {
-    sdkRole = 'user';
-  } else if (coreMsg.metadata?.originalSdkRole) {
-    // If originalSdkRole is present and valid, use it.
-    const MAPPABLE_ROLES: Array<'user' | 'assistant' | 'system'> = ['user', 'assistant', 'system'];
-    if (MAPPABLE_ROLES.includes(coreMsg.metadata.originalSdkRole as any)) {
-        sdkRole = coreMsg.metadata.originalSdkRole as 'user' | 'assistant' | 'system';
-    }
-  } else if (coreMsg.metadata?.senderId === 'system') { // Convention for system messages
-      sdkRole = 'system';
-  }
-
-  return {
-    id: coreMsg.messageId,
-    role: sdkRole,
-    content,
-    createdAt: new Date(coreMsg.metadata.timestamp),
-  };
 }
