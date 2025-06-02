@@ -6,6 +6,9 @@ import {
   Artifact as A2AArtifact, // For AgentTaskUpdatePayload
 } from "./a2a";
 
+// TODO: via action messages, user or agent can change the status of workspace, channel and chat.
+// But we should review each permission carefully.
+// And we may move some message types to signal types, if the action is only from system rather than user or agent.
 export type CoreMessage = ContentMessage | UserJoinedChatMessage | UserLeftChatMessage
   | UserInvitedToChatMessage | ChatMetadataUpdatedMessage | ChannelCreatedMessage | ChannelDeletedMessage
   | MessageEditedMessage | MessageDeletedMessage | ReactionAddedMessage | ReactionRemovedMessage
@@ -13,36 +16,14 @@ export type CoreMessage = ContentMessage | UserJoinedChatMessage | UserLeftChatM
   | AgentActionResponseMessage | AgentTaskUpdateMessage | CustomActivityMessage;
 
 // --- ActivityType Enum (Defines the nature of the CoreMessage) ---
-export enum ActivityType {
-  // Standard Communication
-  CONTENT_MESSAGE = "content_message",          // User/Agent content message, it may contain text, files, or structured data (e.g., rich content)
-
-  // Membership & Chat/Channel Management
-  USER_JOINED_CHAT = "user_joined_chat",
-  USER_LEFT_CHAT = "user_left_chat",
-  USER_INVITED_TO_CHAT = "user_invited_to_chat",
-  CHAT_METADATA_UPDATED = "chat_metadata_updated", // e.g., name, topic, avatar of the chat
-  CHANNEL_CREATED = "channel_created",          // System event indicating a new channel/chat was made
-  CHANNEL_DELETED = "channel_deleted",
-
-  // Message Interactions
-  MESSAGE_EDITED = "message_edited",
-  MESSAGE_DELETED = "message_deleted",      // Soft deletion of a target message
-  REACTION_ADDED = "reaction_added",
-  REACTION_REMOVED = "reaction_removed",
-  MESSAGE_PINNED = "message_pinned",
-  MESSAGE_UNPINNED = "message_unpinned",
-
-  // System, Moderation & Agent-Specific Actions
-  SYSTEM_NOTIFICATION = "system_notification",  // Generic notification from the system
-  AGENT_ACTION_REQUEST = "agent_action_request",// User explicitly requests an agent to do something (e.g., /ban @user)
-  // The payload would detail the action.
-  AGENT_ACTION_RESPONSE = "agent_action_response",// Agent's response/confirmation to an action request.
-  AGENT_TASK_UPDATE = "agent_task_update",    // Agent provides an update on a background task
-
-  // Fallback/Custom for extensibility, for future use
-  CUSTOM_ACTIVITY = "custom_activity",
-}
+export const ActivityTypeEnum = [
+  "content_message", "custom_activity",
+  "user_joined_chat", "user_left_chat", "user_invited_to_chat", "chat_metadata_updated",
+  "channel_created", "channel_deleted",
+  "message_edited", "message_deleted", "reaction_added", "reaction_removed", "message_pinned", "message_unpinned",
+  "system_notification", "agent_action_request", "agent_action_response", "agent_task_update",
+] as const;
+export type ActivityTypeValue = (typeof ActivityTypeEnum)[number];
 
 // --- Application-Specific Metadata for A2APart ---
 // These interfaces define how we might structure the `metadata` field within A2A parts
@@ -61,9 +42,87 @@ export interface DataPartMetadata {
   // ... other app-specific data part details
 }
 export type TextPart = A2ATextPart
-export type FilePart = A2AFilePart & { metadata?: { _PortalAppFile: AppFilePartMetadata } }
-export type DataPart = A2ADataPart & { metadata?: { _PortalAppData: DataPartMetadata } }
+export type FilePart = A2AFilePart & { metadata?: { _PortalAppMetadata: AppFilePartMetadata } }
+export type DataPart = A2ADataPart & { metadata?: { _PortalAppMetadata: DataPartMetadata } }
 export type Part = TextPart | FilePart | DataPart
+
+// --- CoreMessage Definition (Independent of A2AMessage structure) ---
+export const MessageSenderTypeEnum = ["user", "agent", "system"] as const;
+export type MessageSenderType = (typeof MessageSenderTypeEnum)[number];
+export const MessageNetworkStateEnum = ["sending", "sent", "received", "receiving_stream", "failed"] as const;
+export type MessageNetworkState = (typeof MessageNetworkStateEnum)[number];
+export interface BaseMessage {
+  id: string;        // Unique ID for this message/event (UUID v7 recommended)
+
+  workspaceId: string;      // ID of the workspace
+  channelId: string;        // ID of the channel this message belongs to
+  chatId: string;           // ID of the chat/channel this message belongs to
+
+  senderId: string;         // ID of the User, Agent, or special "system" ID
+  senderType: MessageSenderType;
+
+  // ID of the task this message is related to. '0000' means the message has not related to any task.
+  taskId: string;
+  // we should give this message a short summary for quickly gethering the context of the message
+  summary?: string | null;
+
+  /**
+    * Timestamp string when the message was created.
+    * Epoch time in milliseconds, created by the database when inserting the message.
+    * Not comparable to the timestamp in the A2A Message structure (ISO 8601).
+    * */
+  timestamp: number;
+
+  replyTo?: string | null; // message id of the message this message is replying to
+
+  networkState: MessageNetworkState;
+
+  type: ActivityTypeValue; // The primary type of event this message represents
+  payload: Record<string, any> | Part[]; // Typed by interfaces above based on `type`.
+
+  // --- fields below match the A2A Message structure ---
+  // General Purpose Metadata for any other custom data, versioning, source system info, trace IDs etc.
+  // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
+  metadata?: Record<string, any> | null;
+
+}
+
+export interface ContentMessage extends BaseMessage {
+  type: "content_message";
+  // `parts` will hold the primary content, structured as A2A Parts.
+  // For activities (like USER_JOINED), `parts` might be empty or contain a system-generated summary,
+  // while `activityPayload` holds the structured data.
+  payload: Part[];
+  // --- Interaction & Lifecycle State ---
+  reactions?: Array<{ emoji: string; userIds: string[]; count: number; }>;
+  isEdited?: boolean;
+  editHistory?: Array<{ editorUserId: string; editedAt: number; previousPartsHash: string; }>; // Hash(SHA256) of A2APart[] without the metadata
+  isDeleted?: boolean; // Soft delete flag for this message itself
+  deletedInfo?: { deletedByUserId: string; deletedAt: string; };
+
+  isStarred?: boolean; // whether the message is starred by the user, default to false
+
+  /** List of tasks referenced as context by this message.*/
+  referenceTaskIds?: string[];
+  /** The context the message is associated with */
+  contextId?: string | null;
+  /** Identifier created by the message creator (in a2a agent network).
+   * if the message is created by the user / system in the app, it equals to the id.
+   * '0000' means the message is not in a a2a network (e.g. local message).
+  */
+  a2aId?: string | null;
+
+  // --- Safety, Moderation, Security ---
+  // TODO: post MVP
+  safetyRatings?: Array<{
+    provider: string; // e.g., "google_perspective", "openai_moderation"
+    category: string; // e.g., "HATE_SPEECH", "SELF_HARM"
+    severityScore?: number; // 0.0 - 1.0
+    isBlocked?: boolean;
+  }>;
+  moderationStatus?: 'approved' | 'rejected' | 'pending_manual_review' | 'auto_flagged';
+  sensitivity?: 'confidential' | 'internal_only' | 'public'; // Data sensitivity classification
+}
 
 // --- Activity Payload Interfaces (for CoreMessage.activityPayload) ---
 // These describe the structured data for specific activity types.
@@ -86,127 +145,71 @@ export interface AgentActionResponsePayload { originalRequestId: string; status:
 export interface AgentTaskUpdatePayload { taskId: string; status?: string; progress?: number; description?: string; artifacts?: A2AArtifact[]; }
 export interface CustomActivityPayload { customType: string; data: Record<string, any>; }
 
-
-// --- CoreMessage Definition (Independent of A2AMessage structure) ---
-export interface BaseMessage {
-  messageId: string;        // Unique ID for this message/event (UUID v7 recommended)
-  clientMessageId?: string; // Optional: client-generated ID for optimistic updates
-
-  workspaceId: string;      // ID of the workspace
-  channelId?: string;        // ID of the channel this message belongs to
-  chatId: string;           // ID of the chat/channel this message belongs to
-  taskId?: string;         // If part of a task, ID of the root message of the task
-
-  senderId: string;         // ID of the User, Agent, or special "system" ID
-  senderType: 'user' | 'agent' | 'system';
-
-  timestamp: string;        // ISO 8601 string: when the event was created/processed by the system
-
-  type: ActivityType; // The primary type of event this message represents
-  payload?: Record<string, any> | Part[]; // Typed by interfaces above based on `type`.
-
-  // --- General Purpose Metadata ---
-  // For any other custom data, versioning, source system info, trace IDs etc.
-  // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
-  metadata?: Record<string, any>;
-}
-
-export interface ContentMessage extends BaseMessage {
-  type: ActivityType.CONTENT_MESSAGE;
-  // `parts` will hold the primary content, structured as A2A Parts.
-  // For activities (like USER_JOINED), `parts` might be empty or contain a system-generated summary,
-  // while `activityPayload` holds the structured data.
-  payload: Part[];
-  // --- Interaction & Lifecycle State ---
-  reactions?: Array<{ emoji: string; userIds: string[]; count: number; }>;
-  isEdited?: boolean;
-  editHistory?: Array<{ editorUserId: string; editedAt: string; previousPartsHash?: string; }>; // Hash of A2APart[]
-  isDeleted?: boolean; // Soft delete flag for this message itself
-  deletedInfo?: { deletedByUserId: string; deletedAt: string; };
-
-  // --- Relational & Contextual Info ---
-  replyToMessageId?: string;
-  relatedA2ATaskIds?: string[]; // IDs of A2A tasks this message might be relevant to or trigger
-
-  // --- UI & Client-Side State ---
-  uiState?: 'sending' | 'sent' | 'delivered_to_server' | 'delivered_to_recipient' | 'viewed' | 'failed_to_send' | 'pending_retry';
-  isPinned?: boolean;
-
-  // --- Safety, Moderation, Security ---
-  safetyRatings?: Array<{
-    provider: string; // e.g., "google_perspective", "openai_moderation"
-    category: string; // e.g., "HATE_SPEECH", "SELF_HARM"
-    severityScore?: number; // 0.0 - 1.0
-    isBlocked?: boolean;
-  }>;
-  moderationStatus?: 'approved' | 'rejected' | 'pending_manual_review' | 'auto_flagged';
-  sensitivity?: 'confidential' | 'internal_only' | 'public'; // Data sensitivity classification
-}
 export interface UserJoinedChatMessage extends BaseMessage {
-  type: ActivityType.USER_JOINED_CHAT;
+  type: "user_joined_chat";
   payload: UserJoinedChatPayload;
 }
 export interface UserLeftChatMessage extends BaseMessage {
-  type: ActivityType.USER_LEFT_CHAT;
+  type: "user_left_chat";
   payload: UserLeftChatPayload;
 }
 export interface UserInvitedToChatMessage extends BaseMessage {
-  type: ActivityType.USER_INVITED_TO_CHAT;
+  type: "user_invited_to_chat";
   payload: UserInvitedToChatPayload;
 }
 export interface ChatMetadataUpdatedMessage extends BaseMessage {
-  type: ActivityType.CHAT_METADATA_UPDATED;
+  type: "chat_metadata_updated";
   payload: ChatMetadataUpdatedPayload;
 }
 export interface ChannelCreatedMessage extends BaseMessage {
-  type: ActivityType.CHANNEL_CREATED;
+  type: "channel_created";
   payload: ChannelCreatedPayload;
 }
 export interface ChannelDeletedMessage extends BaseMessage {
-  type: ActivityType.CHANNEL_DELETED;
+  type: "channel_deleted";
   payload: ChannelDeletedPayload;
 }
 export interface MessageEditedMessage extends BaseMessage {
-  type: ActivityType.MESSAGE_EDITED;
+  type: "message_edited";
   payload: MessageEditedPayload;
 }
 export interface MessageDeletedMessage extends BaseMessage {
-  type: ActivityType.MESSAGE_DELETED;
+  type: "message_deleted";
   payload: MessageDeletedPayload;
 }
 export interface ReactionAddedMessage extends BaseMessage {
-  type: ActivityType.REACTION_ADDED;
+  type: "reaction_added";
   payload: ReactionAddedPayload;
 }
 export interface ReactionRemovedMessage extends BaseMessage {
-  type: ActivityType.REACTION_REMOVED;
+  type: "reaction_removed";
   payload: ReactionRemovedPayload;
 }
 export interface MessagePinnedMessage extends BaseMessage {
-  type: ActivityType.MESSAGE_PINNED;
+  type: "message_pinned";
   payload: MessagePinnedPayload;
 }
 export interface MessageUnpinnedMessage extends BaseMessage {
-  type: ActivityType.MESSAGE_UNPINNED;
+  type: "message_unpinned";
   payload: MessageUnpinnedPayload;
 }
 export interface SystemNotificationMessage extends BaseMessage {
-  type: ActivityType.SYSTEM_NOTIFICATION;
+  type: "system_notification";
   payload: SystemNotificationPayload;
 }
 export interface AgentActionRequestMessage extends BaseMessage {
-  type: ActivityType.AGENT_ACTION_REQUEST;
+  type: "agent_action_request";
   payload: AgentActionRequestPayload;
 }
 export interface AgentActionResponseMessage extends BaseMessage {
-  type: ActivityType.AGENT_ACTION_RESPONSE;
+  type: "agent_action_response";
   payload: AgentActionResponsePayload;
 }
 export interface AgentTaskUpdateMessage extends BaseMessage {
-  type: ActivityType.AGENT_TASK_UPDATE;
+  type: "agent_task_update";
   payload: AgentTaskUpdatePayload;
 }
 export interface CustomActivityMessage extends BaseMessage {
-  type: ActivityType.CUSTOM_ACTIVITY;
+  type: "custom_activity";
   payload: CustomActivityPayload;
 }

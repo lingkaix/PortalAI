@@ -1,6 +1,14 @@
 import React, { useState, createContext, useContext, ReactNode } from "react";
-import { RightSidebarContextType } from "../types"; // Import the type
 
+/**
+ * Defines the shape of the context for managing the right sidebar.
+ */
+export interface RightSidebarContextType {
+  isOpen: boolean;
+  openSidebar: (content: ReactNode) => void;
+  closeSidebar: () => void;
+  content: ReactNode;
+}
 // Create the context with an initial undefined value
 const RightSidebarContext = createContext<RightSidebarContextType | undefined>(undefined);
 

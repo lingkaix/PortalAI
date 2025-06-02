@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { RightSidebarProvider } from './contexts/RightSidebarContext';
 import { useSettingsStore } from './data/settingsStore'; // Import settings store
 import { useAgentStore } from './data/agentStore'; // Import agent store
+import { useAppStateStore } from './data/appStateStore'; // Import app state store
+import { useChatStore } from './data/chatStore'; // Import chat store
 
 // Layout Components
 import { LeftSidebarContainer } from './layouts/LeftSidebarContainer';
@@ -29,6 +31,8 @@ const App: React.FC = () => {
   useEffect(() => {
     useSettingsStore.getState().loadSettings();
     useAgentStore.getState().loadAgent();
+    useAppStateStore.getState().init();
+    useChatStore.getState().init(useAppStateStore);
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (

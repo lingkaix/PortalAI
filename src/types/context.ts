@@ -1,12 +1,2 @@
-// src/types/context.ts
-import { ReactNode } from "react"; // Import dependency
+// TODO: design a context for the task, compatible with the a2a network
 
-/**
- * Defines the shape of the context for managing the right sidebar.
- */
-export interface RightSidebarContextType {
-  isOpen: boolean;
-  openSidebar: (content: ReactNode) => void;
-  closeSidebar: () => void;
-  content: ReactNode;
-}

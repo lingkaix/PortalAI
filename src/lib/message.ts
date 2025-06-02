@@ -10,7 +10,7 @@ import { generateId } from "./utils";
 import { CoreMessage as SDKMessage } from "ai";
 import {
   CoreMessage,
-  ActivityType,
+  ActivityTypeValue,
   ContentMessage,
   BaseMessage,
   Part
@@ -21,7 +21,7 @@ import {
  * Specific helpers for each ActivityType might be more convenient.
  */
 export function newMessage(params: {
-  type: ActivityType;
+  type: ActivityTypeValue;
   chatId: string;
   workspaceId: string;
   senderId: string;
@@ -37,7 +37,7 @@ export function newMessage(params: {
   const now = new Date().toISOString();
 
   const baseMessage: BaseMessage = {
-    messageId: params.messageId || generateId(),
+    id: params.messageId || generateId(),
     clientMessageId: params.clientMessageId,
     workspaceId: params.workspaceId,
     channelId: params.channelId,
@@ -74,7 +74,7 @@ export function newContentMessage(params: {
   const now = new Date().toISOString();
 
   return {
-    messageId: params.messageId || generateId(),
+    id: params.messageId || generateId(),
     clientMessageId: params.clientMessageId,
     workspaceId: params.workspaceId,
     channelId: params.channelId,
@@ -107,7 +107,7 @@ export function toA2AMessage(coreMsg: CoreMessage): A2AMessage {
 
   // Prepare A2A metadata
   const a2aMetadata: Record<string, any> = {
-    coreMessageId: coreMsg.messageId,
+    coreMessageId: coreMsg.id,
     coreSenderId: coreMsg.senderId,
     coreSenderType: coreMsg.senderType,
     coreActivityType: coreMsg.type,
@@ -163,12 +163,12 @@ export function fromA2AMessage(
   let senderId = a2aMsg.metadata?.coreSenderId || (a2aMsg.role === 'agent' ? `agent:${generateId()}` : `user:${generateId()}`);
   if (typeof senderId !== 'string') senderId = `unknown:${generateId()}`;
 
-  let activityType: ActivityType = ActivityType.CONTENT_MESSAGE; // Default
+  let activityType: ActivityTypeValue = ActivityType.CONTENT_MESSAGE; // Default
   if (a2aMsg.metadata?.coreActivityType && typeof a2aMsg.metadata.coreActivityType === 'string') {
     // Check if the coreActivityType is a valid ActivityType enum value
     const activityTypeValues = Object.keys(ActivityType).map(key => ActivityType[key as keyof typeof ActivityType]);
-    if (activityTypeValues.indexOf(a2aMsg.metadata.coreActivityType as ActivityType) !== -1) {
-      activityType = a2aMsg.metadata.coreActivityType as ActivityType;
+    if (activityTypeValues.indexOf(a2aMsg.metadata.coreActivityType as ActivityTypeValue) !== -1) {
+      activityType = a2aMsg.metadata.coreActivityType as ActivityTypeValue;
     } else {
       console.warn(`Unknown coreActivityType from A2A metadata: ${a2aMsg.metadata.coreActivityType}`);
       activityType = ActivityType.CUSTOM_ACTIVITY;

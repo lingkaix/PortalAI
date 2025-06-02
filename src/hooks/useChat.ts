@@ -92,14 +92,14 @@ export function useChat(options: UseChatOptions) {
   } = options;
 
   // Zustand store selectors
-  const storeActiveChatId = useChatStore((state) => state.activeChatId);
-  const storeSetAciveChat = useChatStore((state) => state.setActiveChat);
-  const storeChat = useChatStore((state) => state.activeChatId ? state.chats[state.activeChatId] : null);
-  const storeMessages = useChatStore((state) => state.activeChatId ? state.messages[state.activeChatId] || [] : []);
+  const storeActiveChatId = useChatStore((state) => state.viewingChatId);
+  const storeSetAciveChat = useChatStore((state) => state.activeChat);
+  const storeChat = useChatStore((state) => state.viewingChatId ? state.chats[state.viewingChatId] : null);
+  const storeMessages = useChatStore((state) => state.viewingChatId ? state.messages[state.viewingChatId] || [] : []);
   const storeAddMessage = useChatStore((state) => state.addMessage);
   const storeAddMessages = useChatStore((state) => state.addMessages);
   const storeCreateChat = useChatStore((state) => state.createChat);
-  const storeIsInitialized = useChatStore((state) => state.isInitialized);
+  const storeIsInitialized = useChatStore((state) => state.isLoading);
 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For chat operations like sending message
@@ -162,7 +162,7 @@ export function useChat(options: UseChatOptions) {
       content: currentInputVal,
       role: 'user',
       senderId: currentUserId,
-      contextId: currentChat.primaryContextId,
+      contextId: currentChat.contextId,
     });
     
     // Clear input only if it was not a direct value submission
@@ -188,7 +188,7 @@ export function useChat(options: UseChatOptions) {
               const responseA2A = await agent.request(requestMessage);
               const responseCore: CoreMessage = {
                   ...responseA2A,
-                  messageId: responseA2A.messageId || generateId(),
+                  id: responseA2A.messageId || generateId(),
                   kind: responseA2A.kind || 'message',
                   role: responseA2A.role || 'agent',
                   metadata: {
@@ -206,8 +206,8 @@ export function useChat(options: UseChatOptions) {
                 content: `Agent ${agent.name} failed: ${err.message || 'Unknown error'}`,
                 role: 'agent',
                 senderId: agent.id,
-                contextId: currentChat.primaryContextId,
-                metadata: { error: true, relatedToMessageId: requestMessage.messageId }
+                contextId: currentChat.contextId,
+                metadata: { error: true, relatedToMessageId: requestMessage.id }
               });
               return { agent, response: errorResponse, originalRequest: requestMessage, error: err };
             }
@@ -239,7 +239,7 @@ export function useChat(options: UseChatOptions) {
           content: `An error occurred: ${err.message}`,
           role: 'agent',
           senderId: 'system-error',
-          contextId: currentChat.primaryContextId, 
+          contextId: currentChat.contextId, 
           metadata: {error: true}
         });
         await storeAddMessage(currentChatId, errorMessage);
