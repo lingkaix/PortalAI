@@ -1,112 +1,188 @@
-# Development Plan & Milestones: Project Portal - Phase 1 (Local MVP)
+# Project Portal: Development Plan - Phase 1 (Local MVP)
 
-Version: 0.4  
-Date: April 10, 2025
+Version: 1.2  
+Date: May 22, 2025
 
-## 1. Introduction
+## Introduction
 
-This document outlines the development plan and milestones for **Phase 1** of Project Portal. The primary goal of this phase is to deliver a **Minimum Viable Product (MVP)** as a **free, local-only desktop application**. This MVP will demonstrate the core concepts of the Portal platform, including the agent framework (Model-Tools-Memory leveraging LangChain.js/LangGraph.js), key agent roles and interactions, and essential local data management (using JSON files), all **without requiring user signup or any server-side infrastructure.**  
-This initial phase focuses on validating the core architecture, agent capabilities, and user experience in a self-contained environment before exploring cloud-based features and team collaboration.
+This document outlines the initial development plan for Project Portal, focusing on delivering a Minimum Viable Product (MVP) as a free, local-only desktop application. This phase prioritizes establishing the core user interface, foundational agent capabilities, essential tools, and the necessary infrastructure for testing and deployment. All features are scoped for a personal workspace environment.
 
-## 2. Phase 1 Scope & Goals
+### Key Exclusions (for MVP):
 
-* **Deliverable:** A functional, cross-platform desktop application (Windows, macOS, Linux via Tauri) distributed for free.  
-* **Core Functionality:**  
-  * **Personal Workspace:** Implement the user's private workspace environment.  
-  * **Local Agent Framework:** Build the foundation for defining and running agents based on the Model-Tools-Memory concept locally, utilizing **LangChain.js/LangGraph.js**.  
-  * **Local Configuration/Metadata:** Use local **JSON files** for agent configurations, tool configurations, and Knowledge Base metadata.  
-  * **Key Agent Demonstrations:** Implement a core set of agents (Admin, Orchestrator, Researcher, Designer, Coder) to showcase different capabilities and the crucial multi-agent interaction pattern.  
-  * **Essential Built-in Tools:** Provide fundamental tools for agents (web Browse, file system access, information extraction, codeAct execution).  
-  * **Basic External Tool Config:** Allow users to configure external (e.g., MCP) tools via JSON input/file.  
-* **Key Exclusions (for Phase 1):**  
-  * No user accounts, authentication, or signup.  
-  * No server backend or cloud synchronization.  
-  * No Team Workspaces or multi-user collaboration features.  
-  * No advanced code execution sandbox (beyond the codeAct needs) or web rendering within the app initially.  
-  * No Memory Auditing/Editing features.  
-  * No Asset Sharing features.  
-  * No database (using JSON files instead).
+* No user accounts, authentication, or signup.  
+* No server backend or cloud synchronization.  
+* No Team Workspaces or multi-user collaboration features.  
+* No advanced code execution sandbox (beyond the codeAct needs) or web rendering within the app initially.  
+* No Memory Auditing/Editing features.  
+* No Asset Sharing features.  
+* No database (using JSON files instead).
 
-## 3. Architecture & Technical Details
+## Part 1: Core UI Development (Tauri + React)
 
-* **Application Shell (Tauri):** Provides the cross-platform desktop container, access to native OS capabilities, and manages the Rust backend process.  
-* **Frontend (TypeScript Dominant):**  
-  * **Primary Language:** **TypeScript** for UI (React/Vite/Tailwind), agent logic, tool implementations, state management, and interactions with Rust backend via Tauri's JS API bridge.  
-  * **Key Libraries:** **LangChain.js/LangGraph.js** for agent creation, orchestration, context management, and tool integration.  
-* **Backend/Core Logic (Rust via Tauri - Minimalist Role):**  
-  * **Core Task:** Handles tasks requiring native performance or capabilities not suitable/available for the frontend TS environment (e.g., interfacing with specific OS libraries not exposed by Tauri's JS API, CPU-intensive computations if any). May provide optimized file I/O or helper functions callable from TS.  
-  * **Tauri API Bridge:** Exposes necessary functions (e.g., readFile, writeFile) to the TypeScript frontend.  
-* **Agent Execution Environment:**  
-  * **Framework:** Built using **LangChain.js/LangGraph.js**.  
-  * **Orchestration & codeAct:** The Orchestrator agent (TS, using LangGraph) will generate **TypeScript/JavaScript code snippets** following the codeAct pattern.  
-  * **Other Agents:** Logic implemented in TypeScript, leveraging LangChain abstractions.  
-* **Configuration & Metadata (Local JSON Files):**  
-  * agents.json: Stores configurations for defined agents (LLM settings like API key source/model name, temperature, assigned tools, role/prompt).  
-  * mcp.json: Stores configurations for external MCP tools provided by the user.  
-  * knowledge.json: Stores index of knowladge bases, each knowladge bases has its own index file which stores metadata for Knowledge Base files (path, user-assigned category, AI-generated summary, timestamps) and seperated folder for files. 
-  * channels.json: Stores channels' information. Each chat(DM or group) has its own json file to store messages. And each channel has its own folder to store assets.
-  * **Data Access:** Read/write operations on these JSON files handled by TypeScript functions calling Tauri's FS APIs. Need to manage potential concurrent access if applicable, though less likely in MVP.  
-* **Knowledge Base Implementation:**  
-  * **Storage:** Original documents stored directly on the user's local file system.  
-  * **Metadata/Indexing:** File paths, categories, summaries stored in knowledge-base.json.  
-  * **Context Retrieval:** Logic in TS reads knowledge-base.json to find relevant document summaries/metadata based on queries, then loads full content from disk via Tauri FS API as needed.  
-* **Tools Implementation (TypeScript First):**  
-  * **Goal:** Implement tools using TypeScript libraries/functions, callable via LangChain/LangGraph.  
-  * **CodeAct Execution:** A dedicated TS function execution sandbox (currently using web worker) within the frontend will execute the generated TS/JS code. Requires strict validation and sandboxing. Available tools/functions exposed to this environment.  
-  * **Built-in Tools:**  
-    * *Headless Browser:* Use Playwright  
-    * *Local File Reader/Writer:* Use Tauri's FS API directly from TypeScript, exposed as a tool.  
-    * *File Information Extractor:* Use TS libraries (e.g., pdf.js, etc.).  
-    * *Agent Interaction Functions (codeAct targets):* Functions like listAgents(), callAgent(agentName, args) exposed as callable TS functions/LangChain tools.  
-  * **External (MCP) Tool Configuration:** UI allows editing mcp-tools.json. Logic (in TS) parses this file to make HTTP calls or execute commands based on the config (with security validation).
+This part focuses on building the primary user interface and navigation structure.  
+1.1. General Application Layout:
 
-## 4. Key Agents & Implementation Details
+* Platform: Tauri with React frontend (TypeScript, Vite, Tailwind CSS).  
+* Structure:  
+  * Left Sidebar: Primary navigation pane for switching between main pages/modules (Dashboard, Chats, Agent Management, etc.).  
+  * Main Content Area: Central area for displaying the content of the selected page.  
+  * Pop-up Right Sidebar (Contextual): A collapsible/expandable sidebar on the right for displaying context-specific information (e.g., agent details, tool options, task details). *Future: User resizable, detachable as separate window.*  
+  * Notification System: Pop-up notifications (e.g., toasts) from the bottom of the screen for errors, warnings, or important alerts.
 
-* **Core Framework:** Use LangChain.js/LangGraph.js for agent definition, state management, tool usage, and chaining/graph execution.  
-* **Configuration:** Agents load configuration (model, temp, tools) from agents.json.  
-* **Workspace Admin Agent:** TS-based agent (LangChain), uses file system tools.  
-* **Orchestrator/Planner Agent (CRITICAL):** TS-based agent (LangGraph), generates TS/JS codeAct snippets executed via the dedicated executor tool. Manages multi-agent workflows.  
-* **Deep Research Agent:** TS-based agent (LangChain), uses Headless Browser, File Extractor, and KB (JSON metadata) tools.  
-* **Image Generation Agent (Designer):** TS-based agent (LangChain), placeholder or basic API call via HTTP tool.  
-* **Programming Agent:** TS-based agent (LangChain), generates code snippets as text.
+1.2. Dashboard Page:
 
-## **5. Build, Release, and Auto-Update**
+* Purpose: Central landing page for the Personal Workspace.  
+* Content:  
+  * Overview of workspace activity: Display the last 3-5 accessed channels/tasks. No complex filtering, historical aggregation, or detailed analytics for MVP.  
+  * Access point for general information and quick actions.  
+  * Initial Setup Guidance: The Dashboard area or a first-run modal should guide the user through essential initial configurations, such as setting up their LLM API key (if required by configured agents) and understanding how to interact with 'Magic Conch' for initial tasks or help.  
+* "Magic Conch" (Workspace Supervisor / Personal Assistant) Integration:  
+  * Provides a primary, easily accessible interface for "Magic Conch" to act as an all-over chat AI for simple or ad-hoc questions.  
+  * Users can engage in general chat with Magic Conch for:  
+    * Summarizing workspace status.  
+    * Navigating to specific channels/tasks.  
+    * Creating new tasks through conversation.  
+    * Querying general historical knowledge (from what Magic Conch has access to within the personal workspace).  
+    * Seeking help that might require Magic Conch to delegate to other specialized agents.
 
-* **5.1 CI/CD:** GitHub Actions triggered by Git tags.  
-* **5.2 Automated Builds:** Tauri build for: macOS (x86_64, aarch64), Windows (x86_64), Linux (x86_64, Flatpak).  
-* **5.3 Automated Releases:** Create GitHub Release with built binaries/installers.  
-* **5.4 Application Auto-Update:** Tauri updater module configured to check GitHub Releases.
+1.3. Chat UI (Channels & Tasks):
 
-## **6. Milestone Deliverables**
+* Core Functionality: The most critical page for user-agent interaction.  
+* Structure:  
+  * Ability to create/manage "Channels" (acting as project containers or thematic discussions for the Personal Workspace MVP).  
+  * Ability to create/manage "Tasks" within Channels. A task will typically instantiate a specific chat session.  
+* Chat Interface:  
+  * Supports group chat dynamics where the user interacts with one or more AI agents (e.g., the Orchestrator Agent bringing in other expert agents).  
+  * Direct chat with specific agents.  
+  * *Future (Post-MVP):* Multi-human collaboration.  
+* Channel/Task Management Considerations:  
+  * Provide an intuitive way to list, search, and navigate channels and tasks.  
+  * Streamline the process of creating a new task within the appropriate channel.  
+  * *(Potentially a pinned channel for "Magic Conch" for quick access if not solely on the dashboard).*
 
-1. **M1: Foundational Framework & Project Infrastructure:**  
-   * **Core Setup:** Tauri app initialized, basic window, frontend build pipeline (Vite/React/TS).  
-   * **CI/CD Pipeline:** Setup and testing of GitHub Actions CI/CD for build (incl. Flatpak) and release automation triggered by Git tags.  
-   * **Auto-Updater:** Implementation and testing of Tauri's auto-updater checking GitHub Releases.  
-   * **Testing Infrastructure:** Setup Unit Testing (Vitest for TS, cargo test for Rust helpers) and basic E2E Testing foundation (e.g., Playwright/Cypress + Tauri driver). Integrate tests into CI pipeline.  
-   * **Basic State Management:** Setup client-side state management (e.g., Zustand, Redux Toolkit).  
-2. **M2: UI Design & Implementation:**  
-   * **Focus:** Implement the primary user interface components based on designs (React/Tailwind).  
-   * **Deliverables:** Functional UI shell including:  
-     * Personal Workspace layout (project list/sidebar).  
-     * Chat interface components (message display, input area).  
-     * Basic Settings panel structure.  
-     * Placeholders for agent configuration and KB view.  
-3. **M3: Core Agent Framework & Essential Tools:**  
-   * **Agent Foundation:** Integrate **LangChain.js/LangGraph.js**. Define basic agent structure reading config from agents.json (file created manually initially). Implement core agent calling/context sharing mechanism. Implement UI for basic LLM config (API key input, temperature slider).  
-   * **Key Tools Implementation (TS First):**  
-     * Implement the secure **codeAct TS/JS execution environment**.  
-     * Implement **Headless Browser** tool (TS/Rust).  
-     * Implement **File System** tool (via Tauri API).  
-     * Implement logic for calling **External MCP tools** based on mcp-tools.json (file created manually initially).  
-     * Lay groundwork for **Deep Research** agent's tool usage patterns.  
-4. **M4: Agent Implementation & Configuration UI:**  
-   * **Implement Core Agents:** Build the specific agent logic using the M3 framework: Workspace Admin, Orchestrator (utilizing codeAct), Researcher, Designer (basic), Coder (basic).  
-   * **Configuration UI:** Implement UI components for users to view, add, and edit agent configurations (reading/writing agents.json). Implement UI for configuring external MCP tools (reading/writing mcp-tools.json).  
-5. **M5: Knowledge Base (JSON) & Polish:**  
-   * **KB Metadata:** Implement logic for reading/writing knowledge-base.json.  
-   * **KB File Handling:** Implement UI and logic (via Tauri API) for adding files to the KB (copying files locally) and associating them with metadata in knowledge-base.json.  
-   * **Context Retrieval:** Implement logic to use knowledge-base.json to find relevant documents/summaries for agent context.  
-   * **Agent KB Integration:** Integrate Research/Admin agents to read from and write to the KB (knowledge-base.json + associated files).  
-   * **Finalization:** Comprehensive testing, bug fixing, documentation updates, final packaging.
+1.4. Agent Management Page:
 
+* Purpose: Manage agents available within the Personal Workspace.  
+* Functionality:  
+  * List built-in agents (e.g., "Magic Conch" Orchestrator Agent, "Shiny Dolphin," "Super Wombat").  
+  * Allow users to add/configure new local agents (based on available models and tools, configuration via JSON file as per PRD).  
+  * Display agent status and basic details.  
+  * Manage agent memory settings (e.g., clearing short-term memory, pointing to specific long-term memory files/contexts if applicable).  
+  * *Future (Post-MVP):* Adding remote agents via A2A protocol.
+
+1.5. Tool Management Page:
+
+* Purpose: Manage tools available for agents.  
+* Functionality:  
+  * List built-in tools provided by the application.  
+  * Allow users to configure/add MCP (Multi-Modal Cognitive Processes) tools via JSON configuration files.
+
+1.6. Settings Page:
+
+* Purpose: General application settings.  
+* Functionality:  
+  * Configure default LLM model settings (e.g., API key source, endpoint for local models like Ollama, default temperature).  
+  * Basic user profile information (local, no accounts).  
+  * Application preferences (e.g., theme, notification settings).
+
+1.7. Future Pages (Post-MVP):
+
+* Knowledge Base Management Page.  
+* Timers/Scheduled Tasks Page.  
+* Receipts/Workflows/Templates Page.
+
+## Part 2: Foundational Agent Implementation
+
+This part focuses on developing the initial set of key functional agents and the underlying framework.  
+2.1. "Magic Conch" (Workspace Supervisor / Personal Assistant):
+
+* Role: Acts as the user's primary AI assistant within the Personal Workspace. Serves as both a workspace administrator and an all-over chat AI for general queries.  
+* Capabilities:  
+  * Understands natural language queries about the workspace.  
+  * Can summarize workspace status.  
+  * Helps navigate or initiate actions (e.g., creating tasks/channels).  
+  * Accesses and utilizes the Personal Workspace's general knowledge.  
+  * For general queries, can call upon other specialized agents (e.g., ask "Super Wombat" to search online, or "Shiny Dolphin" to review a file).  
+  * If a general chat becomes complex or requires long-term tracking, Magic Conch will suggest moving the conversation to a new or existing channel/task.  
+* Framework: Implemented using LangChain.js/LangGraph.js, configured via agents.json.
+
+2.2. "Super Wombat" (Online Research Agent):
+
+* Role: Specialized agent for accessing all kinds of online content.  
+* Model: Utilizes an LLM that supports search (via tool use/function calling).  
+* Capabilities:  
+  * Takes a search query or topic as input.  
+  * Uses the "Headless Browser Tool" to perform searches, browse webpages, and retrieve information.  
+  * Can summarize findings, answer questions based on web content, or provide URLs to relevant sources.  
+* Framework: Implemented using LangChain.js, utilizing the browser tool.
+
+2.3. "Shiny Dolphin" (Multimodal File Processing Agent):
+
+* Role: Specialized agent for reading and understanding a wide variety of local files and content types.  
+* Model: Utilizes a multimodal LLM.  
+* Capabilities:  
+  * Takes a file path and query/extraction instruction as input.  
+  * Uses "File Reader" and "File Information Extractor" tools to process different file types (text, docx, pdf, images, videos, etc., based on tool capabilities).  
+  * Can summarize content, answer questions about the file, describe images/videos, or extract specific data.  
+* Framework: Implemented using LangChain.js, utilizing multimodal file processing tools.
+
+2.4. Core Agent Framework (Model-Tool-Memory):
+
+* Implement the foundational structures using LangChain.js/LangGraph.js for:  
+  * Defining agents (loading configuration from agents.json).  
+  * Managing agent memory (Short-Term/Working Context passed dynamically in prompts or held as ephemeral in-memory objects during a session; Long-Term/Learned Knowledge stored in dedicated agent-specific JSON files or structured sections within a general knowledge JSON, focusing on simple key-value or text list storage for MVP).  
+  * Integrating and calling tools (both built-in and configured MCP tools).  
+  * Orchestrating agent interactions (especially for the Orchestrator/Planner agent as defined in the PRD, which uses codeAct).  
+  * Agent Error Communication: Agents must clearly communicate failures, inability to perform a task, or ambiguities to the user, providing reasons where possible via the chat interface, rather than failing silently or providing incomplete/misleading information.
+
+## Part 3: Core Tooling & Integration
+
+This part focuses on developing the essential built-in tools and the mechanism for integrating external tools.  
+3.1. Built-in Tools:
+
+* codeAct Execution Environment: A secure environment (TS/JS sandbox) for the Orchestrator Agent to execute generated TS/JS code snippets for calling other agents or tools. For MVP, this environment will primarily execute code for calling other registered agents/tools and basic conditional logic or data manipulation directly related to task flow, not arbitrary complex computations or UI manipulations.  
+* Headless Browser Tool: For enabling agents like "Super Wombat" to browse the web, scrape information, and conduct online research. (Implemented in TS/Puppeteer or Rust backend).  
+* Local File Reader Tool: Allows agents like "Shiny Dolphin" to read content from local files (via Tauri FS API).  
+* File Information Extractor Tool: Allows agents like "Shiny Dolphin" to extract text and structured data from various file types (PDF, TXT, MD initially, expanding to DOCX, image metadata, video transcripts as feasible with TS libraries or Rust helpers).
+
+3.2. MCP Tool Integration:
+
+* Configuration: Users can configure external MCP tools by providing/editing a mcp_tools.json file.  
+* Invocation: Agents (via codeAct or specific LangChain tool classes) can call these configured MCP tools, typically via HTTP requests or local command execution (with appropriate security considerations and user consent for local execution).
+
+## Part 4: Infrastructure & DevOps
+
+This part focuses on establishing robust development and deployment practices.  
+4.1. Automated Testing:
+
+* Unit Testing: Setup for TypeScript (Vite/Vitest) and any Rust helper functions (cargo test).  
+* End-to-End (E2E) Testing: Basic framework setup (e.g., Playwright or Cypress with Tauri driver) for testing core UI flows.  
+* CI Integration: All tests to be run automatically in the CI pipeline.
+
+4.2. Automated Build Process (CI/CD):
+
+* Platform: GitHub Actions.  
+* Trigger: On new Git tags.  
+* Targets: Build and package the Tauri application for:  
+  * macOS (x86_64 and arm64)  
+  * Windows (x86_64)  
+  * Linux (x86_64 - Flatpak)  
+* Release: Automatically create a GitHub Release and upload built artifacts.
+
+4.3. Automated Application Updater:
+
+* Implement Tauri's built-in updater module.  
+* Configure to check the project's GitHub Releases for new versions.  
+* Prompt user for updates.
+
+## Development Phasing Approach (High-Level)
+
+While the plan is structured in four parts, development will likely interleave these:
+
+1. Foundation: Prioritize Part 4 (Infrastructure - CI/CD basics, updater setup) and Part 1 (General UI Layout, core Tauri setup).  
+2. Core Agent & UI: Implement the essential Chat UI (Part 1) and the Core Agent Framework with the Orchestrator Agent and codeAct (Part 2 & 3). Introduce "Magic Conch" with its basic chat interface on the Dashboard.  
+3. Key Tools & Specialized Agents: Develop essential built-in tools and the specialized agents ("Super Wombat," "Shiny Dolphin") (Part 2 & 3).  
+4. Supporting UI & Features: Complete other UI pages (Agent/Tool Management, Settings) (Part 1).  
+5. Testing & Polish: Iteratively enhance E2E testing, fix bugs, and polish the user experience across all implemented parts.
+
+This plan provides a roadmap for the initial local MVP of Project Portal. Each part will be broken down further into specific tasks and sprints during development.
