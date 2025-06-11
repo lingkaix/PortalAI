@@ -1,9 +1,8 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, index, uniqueIndex, check } from "drizzle-orm/sqlite-core";
 import {
-  CoreMessage, ContentMessage, BaseMessage,
-  ChannelType, ChatType, TaskType, ChatTypeValueEnum,
-  ActivityTypeEnum, MessageSenderTypeEnum, MessageNetworkStateEnum
+  CoreMessage, ChannelType, ChatType, TaskType, ChatTypeValueEnum,
+  MessageTypeEnum, MessageSenderTypeEnum, MessageNetworkStateEnum, ContentMeta
 } from '../../types'
 import { TaskState } from '../../types/a2a';
 
@@ -46,6 +45,7 @@ export const tasks = sqliteTable("tasks", {
   chatId: text("chat_id").notNull(),
   channelId: text("channel_id").notNull(),
   workspaceId: text("workspace_id").notNull(),
+  a2aId: text("a2a_id"),
   summary: text("summary"),
   status: text("status", { enum: Object.values(TaskState) as [string, ...string[]] }).notNull(),
   createdAt: integer("created_at").default(sql`(unixepoch('subsec') * 1000)`).notNull(),
@@ -70,20 +70,21 @@ export const messages = sqliteTable("messages", {
   timestamp: integer("timestamp").notNull().default(sql`(unixepoch('subsec') * 1000)`),
   replyTo: text("reply_to"),
   networkState: text("network_state", { enum: MessageNetworkStateEnum }).notNull(),
-  type: text("type", { enum: ActivityTypeEnum }).notNull(),
+  type: text("type", { enum: MessageTypeEnum }).notNull(),
   payload: text("payload", { mode: "json" }).$type<CoreMessage["payload"]>(),
   metadata: text("metadata", { mode: "json" }).$type<CoreMessage["metadata"]>(),
   // all extra fields for ContentMessage, only available when the type is content_message
-  contentMeta: text("content_meta", { mode: "json" }).$type<Omit<ContentMessage, keyof BaseMessage>>(),
+  contentMeta: text("content_meta", { mode: "json" }).$type<ContentMeta>(),
 }, (table) => [
   index("uuid_idx").on(table.id),
   index("chat_id_idx").on(table.chatId),
   index("sender_id_idx").on(table.senderId),
   index("task_id_idx").on(table.taskId),
   uniqueIndex("unique_message_id_idx").on(table.id, table.chatId),
+  
   check("timestamp_check", sql`${table.timestamp} >  932428800000`), // check if the timestamp is with milliseconds
-  // index for contentMeta.isStarred
-  // index("context_id_idx").on(table.id, table.chatId).where(sql`json_extract(contentMeta, '$.contextId') IS NOT NULL`),
+  
+  // index("context_id_idx").on(sql`json_extract(contentMeta, '$.contextId')`),
   index("starred_message_idx").on(table.id, table.chatId).where(sql`json_extract(contentMeta, '$.isStarred') = 1`),
 ]);
 
