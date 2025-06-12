@@ -9,8 +9,9 @@ import {
 } from "@tauri-apps/plugin-fs";
 import { join, appDataDir } from "@tauri-apps/api/path";
 
-// TODO: shuld be moved to chennelStore.ts
-export const CHANNELS_INDEX_FILE = "channels.json"; // Index file
+// TODO: (post MVP) use ZenFS as a middle layer of filesystem, 
+// so that make the app runnable in a browser.
+
 export const CHANNELS_DATA_DIR = "channels"; // Dir for channel messages/assets
 
 // --- Core Data Directory Management ---

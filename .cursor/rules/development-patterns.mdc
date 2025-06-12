@@ -5,4 +5,5 @@ alwaysApply: true
 ---
  1. MUST follow rules in `docs/vibe-rules-architect.md`
  2. Run testings by command `pnpm run test run [test_file_path]`
+ 3. Everything which calls Tauri's APIs MUST be limited in `src/lib`. Out of lib folder, the app should be able to run in a browser (without Tauri).
 

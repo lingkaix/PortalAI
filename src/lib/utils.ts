@@ -38,3 +38,11 @@ export function isValidUuidv7(id: string): boolean {
       return false;
     });
 }
+
+/**
+ * Check if the app is running in a Tauri environment
+ * @returns {boolean} True if running in Tauri, false if running in browser
+ */
+export function isTauri(): boolean {
+  return typeof window !== 'undefined' && '__TAURI__' in window;
+}
