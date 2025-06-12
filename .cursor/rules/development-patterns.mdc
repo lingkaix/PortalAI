@@ -3,4 +3,6 @@ description:
 globs: 
 alwaysApply: true
 ---
- MUST follow rules in `docs/vibe-rules-architect.md`
+ 1. MUST follow rules in `docs/vibe-rules-architect.md`
+ 2. Run testings by command `pnpm run test run [test_file_path]`
+

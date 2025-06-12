@@ -81,7 +81,7 @@ export async function getLocalDB(name?: string) {
  * @param sql The SQL query to check.
  * @returns True if the query is a SELECT query, false otherwise.
  */
-function isSelectQuery(sql: string): boolean {
+export function isSelectQuery(sql: string): boolean {
   const selectRegex = /^\s*SELECT\b/i;
   return selectRegex.test(sql);
 }
