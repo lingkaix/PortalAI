@@ -15,6 +15,13 @@
       "when": 1749710374708,
       "tag": "0001_many_amphibian",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1749723474023,
+      "tag": "0002_easy_scarecrow",
+      "breakpoints": true
     }
   ]
 }

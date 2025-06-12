@@ -17,8 +17,8 @@ export const channels = sqliteTable("channels", {
   knowledgeBaseIds: text("knowledge_base_ids", { mode: "json" }).$type<ChannelType["knowledgeBaseIds"]>(),
   metadata: text("metadata", { mode: "json" }).$type<ChannelType["metadata"]>(),
 }, (table) => [
-  uniqueIndex("uuid_idx").on(table.id),
-  index("order_idx").on(table.order),
+  uniqueIndex("channels__uuid_idx").on(table.id),
+  index("channels__order_idx").on(table.order),
 ]);
 
 export const chats = sqliteTable("chats", {
@@ -34,9 +34,9 @@ export const chats = sqliteTable("chats", {
   participants: text("participants", { mode: "json" }).notNull().$type<ChatType["participants"]>(),
   metadata: text("metadata", { mode: "json" }).$type<ChatType["metadata"]>(),
 }, (table) => [
-  uniqueIndex("uuid_idx").on(table.id),
-  index("channel_id_idx").on(table.channelId),
-  index("order_idx").on(table.order),
+  uniqueIndex("chats__uuid_idx").on(table.id),
+  index("chats__channel_id_idx").on(table.channelId),
+  index("chats__order_idx").on(table.order),
 ]);
 
 export const tasks = sqliteTable("tasks", {
@@ -53,8 +53,8 @@ export const tasks = sqliteTable("tasks", {
   updates: text("updates", { mode: "json" }).$type<TaskType["updates"]>(),
   metadata: text("metadata", { mode: "json" }).$type<TaskType["metadata"]>(),
 }, (table) => [
-  uniqueIndex("uuid_idx").on(table.id, table.chatId),
-  check("created_at_check", sql`${table.createdAt} >  932428800000`), // check if the timestamp is with milliseconds
+  uniqueIndex("tasks__uuid_idx").on(table.id, table.chatId),
+  check("tasks__created_at_check", sql`${table.createdAt} >  932428800000`), // check if the timestamp is with milliseconds
 ]);
 
 export const messages = sqliteTable("messages", {
@@ -76,16 +76,16 @@ export const messages = sqliteTable("messages", {
   // all extra fields for ContentMessage, only available when the type is content_message
   contentMeta: text("content_meta", { mode: "json" }).$type<ContentMeta>(),
 }, (table) => [
-  index("uuid_idx").on(table.id),
-  index("chat_id_idx").on(table.chatId),
-  index("sender_id_idx").on(table.senderId),
-  index("task_id_idx").on(table.taskId),
-  uniqueIndex("unique_message_id_idx").on(table.id, table.chatId),
+  index("messages__uuid_idx").on(table.id),
+  index("messages__chat_id_idx").on(table.chatId),
+  index("messages__sender_id_idx").on(table.senderId),
+  index("messages__task_id_idx").on(table.taskId),
+  uniqueIndex("messages__unique_message_id_idx").on(table.id, table.chatId),
   
-  check("timestamp_check", sql`${table.timestamp} >  932428800000`), // check if the timestamp is with milliseconds
+  check("messages__timestamp_check", sql`${table.timestamp} >  932428800000`), // check if the timestamp is with milliseconds
   
   // index("context_id_idx").on(sql`json_extract(contentMeta, '$.contextId')`),
-  index("starred_message_idx").on(table.id, table.chatId).where(sql`json_extract(contentMeta, '$.isStarred') = 1`),
+  index("messages__starred_message_idx").on(table.id, table.chatId).where(sql`json_extract(contentMeta, '$.isStarred') = 1`),
 ]);
 
 // TODO: better management of assets (parts) in the messages

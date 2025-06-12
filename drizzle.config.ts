@@ -8,5 +8,5 @@ export default defineConfig({
   },
   verbose: false,
   strict: true,
-  out: "./migrations",
+  out: "./src/lib/db/migrations",
 });
