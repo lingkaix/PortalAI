@@ -1,0 +1,1 @@
+ALTER TABLE `tasks` ADD `a2a_id` text;
