@@ -1,82 +1,15 @@
-import {
-  exists,
-  readTextFile,
-  writeTextFile,
-  create, // Renamed from createDir
-  readDir,
-  remove, // Used for both files and dirs
-  type DirEntry,
-} from "@tauri-apps/plugin-fs";
+import { exists, readTextFile, writeTextFile, create } from "@tauri-apps/plugin-fs";
 import { join, appDataDir } from "@tauri-apps/api/path";
 
+// export fs related actions from Tauri
 // TODO: (post MVP) use ZenFS as a middle layer of filesystem, 
-// so that make the app runnable in a browser.
+// so that make the app runnable in a browser (and possibly other node.js or bun).
+export * from "@tauri-apps/plugin-fs";
+export * from "@tauri-apps/api/path";
 
 export const CHANNELS_DATA_DIR = "channels"; // Dir for channel messages/assets
 
-// --- Core Data Directory Management ---
-
-let _appDataDirPath: string | null = null;
-
-/**
- * Resolves and caches the full path to the app's data directory.
- * Ensures the directory exists.
- * @returns {Promise<string>} The full path to the app data directory.
- */
-export async function getAppDataPath(): Promise<string> {
-  if (_appDataDirPath) {
-    return _appDataDirPath;
-  }
-
-  const dataDir = await appDataDir();
-  if (!(await exists(dataDir))) {
-    try {
-      // create will create the directory if it doesn't exist.
-      // It doesn't support recursive creation directly in plugin-fs v2 beta.
-      // We rely on the OS allowing creation at this standard path.
-      await create(dataDir);
-      console.log("App data directory created:", dataDir);
-    } catch (e) {
-      console.error("Failed to create app data directory:", dataDir, e);
-      // Re-throw with a more specific message, including the original error string
-      throw new Error(`Failed to create app data directory. Original error: ${e}`);
-    }
-  }
-  _appDataDirPath = dataDir;
-  return dataDir;
-}
-
-/**
- * Ensures a specific subdirectory exists within the app data directory.
- * @param {string} dirName - The name of the subdirectory.
- * @returns {Promise<string>} The full path to the subdirectory.
- */
-export async function ensureAppDataSubdir(dirName: string): Promise<string> {
-  const appDataPath = await getAppDataPath();
-  const dirPath = await join(appDataPath, dirName);
-  if (!(await exists(dirPath))) {
-    try {
-      await create(dirPath); // Use create without recursive option
-      console.log(`App data subdirectory created: ${dirPath}`);
-    } catch (e) {
-      console.error(`Failed to create app data subdirectory: ${dirPath}`, e);
-      throw new Error(`Failed to create app data subdirectory ${dirName}: ${e}`);
-    }
-  }
-  return dirPath;
-}
-
-// --- Test Utility ---
-/**
- * Resets the cached app data path. ONLY FOR USE IN TESTS.
- * @internal
- */
-export function _resetAppDataPathCache(): void {
-  _appDataDirPath = null;
-}
-
-// --- Generic File Operations ---
-
+// --- JSON File Operations ---
 /**
  * Reads and parses a JSON file from the app data directory.
  * @template T - The expected type of the parsed JSON data.
@@ -162,77 +95,32 @@ export async function writeJsonFile<T>(relativePath: string, data: T): Promise<v
   }
 }
 
-/**
- * Deletes a file within the app data directory.
- * @param {string} relativePath - The path relative to the app data directory.
- * @returns {Promise<void>}
- * @throws If deletion fails.
- */
-export async function deleteDataFile(relativePath: string): Promise<void> {
-  const appDataPath = await getAppDataPath();
-  const filePath = await join(appDataPath, relativePath);
-  try {
-    if (await exists(filePath)) {
-      await remove(filePath); // Use remove instead of removeFile
-      console.log(`File deleted successfully: ${filePath}`);
-    } else {
-      console.log(`File not found, skipping deletion: ${filePath}`);
-    }
-  } catch (error) {
-    console.error(`Error deleting file: ${filePath}`, error);
-    throw new Error(`Error deleting file ${relativePath}: ${error}`);
-  }
-}
-
-// --- Directory Operations ---
 
 /**
- * Lists files and directories within a specific subdirectory of the app data directory.
- * @param {string} relativePath - The path relative to the app data directory.
- * @param {boolean} [recursive=false] - Whether to list recursively.
- * @returns {Promise<DirEntry[]>} A list of directory entries.
- * @throws If reading the directory fails.
+ * Resolves and caches the full path to the app's data directory.
+ * Ensures the directory exists.
+ * @returns {Promise<string>} The full path to the app data directory.
  */
-export async function listDataDir(relativePath: string, recursive: boolean = false): Promise<DirEntry[]> {
-  // Use DirEntry[] type
-  const appDataPath = await getAppDataPath();
-  const dirPath = await join(appDataPath, relativePath);
-  try {
-    if (await exists(dirPath)) {
-      // NOTE: The 'recursive' parameter is currently ignored as plugin-fs v2 readDir
-      // does not support it directly in the options object.
-      // Manual recursion would be needed if deep listing is required.
-      const entries = await readDir(dirPath); // Removed options object
-      console.log(`Listed directory contents for: ${dirPath}`);
-      return entries;
-    } else {
-      console.log(`Directory not found, cannot list: ${dirPath}`);
-      return []; // Return empty array if dir doesn't exist
-    }
-  } catch (error) {
-    console.error(`Error listing directory: ${dirPath}`, error);
-    throw new Error(`Error listing directory ${relativePath}: ${error}`);
+let _appDataDirPath: string | null = null;
+async function getAppDataPath(): Promise<string> {
+  if (_appDataDirPath) {
+    return _appDataDirPath;
   }
-}
 
-/**
- * Deletes a directory and its contents within the app data directory.
- * @param {string} relativePath - The path relative to the app data directory.
- * @returns {Promise<void>}
- * @throws If deletion fails.
- */
-export async function deleteDataDir(relativePath: string): Promise<void> {
-  const appDataPath = await getAppDataPath();
-  const dirPath = await join(appDataPath, relativePath);
-  try {
-    if (await exists(dirPath)) {
-      await remove(dirPath, { recursive: true }); // Use remove instead of removeDir
-      console.log(`Directory deleted successfully: ${dirPath}`);
-    } else {
-      console.log(`Directory not found, skipping deletion: ${dirPath}`);
+  const dataDir = await appDataDir();
+  if (!(await exists(dataDir))) {
+    try {
+      // create will create the directory if it doesn't exist.
+      // It doesn't support recursive creation directly in plugin-fs v2 beta.
+      // We rely on the OS allowing creation at this standard path.
+      await create(dataDir);
+      console.log("App data directory created:", dataDir);
+    } catch (e) {
+      console.error("Failed to create app data directory:", dataDir, e);
+      // Re-throw with a more specific message, including the original error string
+      throw new Error(`Failed to create app data directory. Original error: ${e}`);
     }
-  } catch (error) {
-    console.error(`Error deleting directory: ${dirPath}`, error);
-    throw new Error(`Error deleting directory ${relativePath}: ${error}`);
   }
+  _appDataDirPath = dataDir;
+  return dataDir;
 }

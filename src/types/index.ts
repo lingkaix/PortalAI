@@ -4,7 +4,7 @@ export * from "./message";
 export * from "./chat";
 export * from "./workspace";
 export * from "./channel";
-export * from "./context"; //TODO
+// export * from "./context"; //TODO
 export * from "./settings"; //TODO
 export * from "./agent"; //TODO
 export * from "./tool"; //TODO
