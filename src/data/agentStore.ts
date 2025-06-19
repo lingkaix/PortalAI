@@ -1,7 +1,10 @@
 import { create } from "zustand";
-import { AgentConfig, Agent, LocalAgentConfig, RemoteAgentConfig } from "../types";
+import { AgentConfig, LocalAgentConfig, RemoteAgentConfig } from "../types";
 import { readJsonFile, writeJsonFile } from "../lib/localAppData";
-import { generateId } from "../lib/utils"; // Import the centralized ID generator
+import { generateId } from "../lib/utils";
+import { LanguageModelV1 } from "ai";
+import { AgentCard } from "@/types/a2a";
+import { getModel } from "@/lib/models";
 
 export const AGENTS_FILE = "agents.json";
 /**
@@ -23,7 +26,6 @@ export async function saveAgentConfig(agentConfig: AgentConfig[]): Promise<void>
 
 interface AgentState {
   agentConfigs: Map<string, AgentConfig>; // the key is the agentId
-  agents: Map<string, Agent>; // the key is the agentId, agents are created from agentConfigs, each config is a single agent instance
   isLoading: boolean;
   error: string | null;
   loadAgent: () => Promise<void>;
@@ -32,14 +34,49 @@ interface AgentState {
   removeAgent: (agentId: string) => Promise<void>;
   enableAgent: (agentId: string) => Promise<void>;
   disableAgent: (agentId: string) => Promise<void>;
+
+  _localAgentModels: Map<string, LanguageModelV1>;
+  _remoteAgentCards: Map<string, AgentCard>;
+  getLocalAgent: (agentId: string) => LocalAgentConfig & {
+    model: LanguageModelV1;
+  } | null;
+  getRemoteAgent: (agentId: string) => RemoteAgentConfig & AgentCard | null;
 }
 
 export const useAgentStore = create<AgentState>((set, get) => ({
   agentConfigs: new Map(),
-  agents: new Map(),
   isLoading: false,
   error: null,
+  _localAgentModels: new Map(),
+  _remoteAgentCards: new Map(),
 
+  getLocalAgent: (agentId: string) => {
+    const agentConfig = get().agentConfigs.get(agentId);
+    if (!agentConfig || agentConfig.kind !== 'local') return null;
+    let model = get()._localAgentModels.get(agentId);
+    if (!model) {
+      model = getModel(agentConfig.provider, agentConfig.model, agentConfig.apiKey);
+      get()._localAgentModels.set(agentId, model);
+    }
+    return {
+      ...agentConfig,
+      model,
+    } as LocalAgentConfig & {
+      model: LanguageModelV1;
+    };
+  },
+  getRemoteAgent: (agentId: string) => {
+    const agentConfig = get().agentConfigs.get(agentId);
+    if (!agentConfig || agentConfig.kind !== 'remote') return null;
+    let card = get()._remoteAgentCards.get(agentId);
+    if (!card) {
+      // TODO: get agent card from url
+    }
+    return {
+      ...agentConfig,
+      ...card,
+    } as RemoteAgentConfig & AgentCard;
+  },
   loadAgent: async () => {
     set({ isLoading: true, error: null });
     try {
@@ -48,12 +85,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       loadedAgentConfigs.forEach((agentConfig) => {
         agentConfigs.set(agentConfig.id, agentConfig);
       });
-      // also create agents from agentConfigs
-      const agents = new Map<string, Agent>();
-      loadedAgentConfigs.forEach((agentConfig) => {
-        agents.set(agentConfig.id, new Agent(agentConfig));
-      });
-      set({ agentConfigs: agentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: agentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error loading agents:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -66,12 +98,12 @@ export const useAgentStore = create<AgentState>((set, get) => ({
     let newAgentConfig: AgentConfig;
     if (newAgentConfigData.kind === 'local') {
       const localConfig = newAgentConfigData as Omit<LocalAgentConfig, "id">;
-      if (!localConfig.modelProvider || !localConfig.model || !localConfig.systemPrompt || !localConfig.name || !localConfig.description) {
-        throw new Error('Local agent requires modelProvider, model, systemPrompt, name, and description fields');
+      if (!localConfig.provider || !localConfig.model || !localConfig.systemPrompt || !localConfig.name || !localConfig.description) {
+        throw new Error('Local agent requires provider, model, systemPrompt, name, and description fields');
       }
       newAgentConfig = {
         ...localConfig,
-        id: generateId(), // Use the centralized ID generator
+        id: generateId(),
       } as LocalAgentConfig;
     } else {
       const remoteConfig = newAgentConfigData as Omit<RemoteAgentConfig, "id">;
@@ -80,22 +112,18 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       }
       newAgentConfig = {
         ...remoteConfig,
-        id: generateId(), // Use the centralized ID generator
+        id: generateId(),
       } as RemoteAgentConfig;
     }
     try {
       const currentAgentConfigs = get().agentConfigs;
       currentAgentConfigs.set(newAgentConfig.id, newAgentConfig);
       await saveAgentConfig(Array.from(currentAgentConfigs.values()));
-      // also add the agent to the agents array
-      const agents = get().agents;
-      agents.set(newAgentConfig.id, new Agent(newAgentConfig));
-      set({ agentConfigs: currentAgentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: currentAgentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error adding agent config:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       set({ error: `Failed to add agent config: ${errorMessage}`, isLoading: false });
-      // Optionally revert state if save fails, though Zustand doesn't do this automatically
     }
   },
 
@@ -111,26 +139,30 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       if (!currentAgentConfig) {
         throw new Error(`Agent config with ID ${updatedAgentConfig.id} not found for update.`);
       }
-      // check, user cannot update isRetired or isEnabled in this function
+      // user cannot update isRetired or isEnabled in this function
       updatedAgentConfig.isRetired = currentAgentConfig.isRetired;
       updatedAgentConfig.isEnabled = currentAgentConfig.isEnabled;
 
       const updatedAgentConfigs = get().agentConfigs;
       updatedAgentConfigs.set(updatedAgentConfig.id, updatedAgentConfig);
       await saveAgentConfig(Array.from(updatedAgentConfigs.values()));
-      // Update the agent in place using the updateConfig method
-      const agents = get().agents;
-      if (agents.has(updatedAgentConfig.id)) {
-        agents.get(updatedAgentConfig.id)!.updateConfig(updatedAgentConfig);
-      } else {
-        const newAgent = new Agent(updatedAgentConfig);
-        agents.set(updatedAgentConfig.id, newAgent);
-      }
-      set({ agentConfigs: updatedAgentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: updatedAgentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error updating agent:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       set({ error: `Failed to update agent: ${errorMessage}`, isLoading: false });
+    }
+    // update local agent model or remote agent card
+    if (updatedAgentConfig.kind === 'local') {
+      const localAgent = get().getLocalAgent(updatedAgentConfig.id);
+      if (localAgent) {
+        get()._localAgentModels.set(updatedAgentConfig.id, getModel(updatedAgentConfig.provider, updatedAgentConfig.model, updatedAgentConfig.apiKey));
+      }
+    } else {
+      const remoteAgent = get().getRemoteAgent(updatedAgentConfig.id);
+      if (remoteAgent) {
+        // TODO: get agent card from url
+      }
     }
   },
 
@@ -145,15 +177,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const updatedAgentConfigs = get().agentConfigs;
       updatedAgentConfigs.set(agentId, currentAgentConfig);
       await saveAgentConfig(Array.from(updatedAgentConfigs.values()));
-      // if the agent is in the agents array, enable it, otherwise, create a new agent
-      const agents = get().agents;
-      if (agents.has(agentId)) {
-        agents.get(agentId)!.enable();
-      } else {
-        const newAgent = new Agent(currentAgentConfig);
-        agents.set(agentId, newAgent);
-      }
-      set({ agentConfigs: updatedAgentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: updatedAgentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error enabling agent:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -172,18 +196,14 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const updatedAgentConfigs = get().agentConfigs;
       updatedAgentConfigs.set(agentId, currentAgentConfig);
       await saveAgentConfig(Array.from(updatedAgentConfigs.values()));
-      // if the agent is in the agents array, remove it
-      const agents = get().agents;
-      if (agents.has(agentId)) {
-        agents.delete(agentId);
-      }
-      set({ agentConfigs: updatedAgentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: updatedAgentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error disabling agent:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);
       set({ error: `Failed to disable agent: ${errorMessage}`, isLoading: false });
     }
   },
+
   removeAgent: async (agentId) => {
     set({ isLoading: true, error: null });
     try {
@@ -194,12 +214,7 @@ export const useAgentStore = create<AgentState>((set, get) => ({
       const updatedAgentConfigs = get().agentConfigs;
       updatedAgentConfigs.delete(agentId);
       await saveAgentConfig(Array.from(updatedAgentConfigs.values()));
-      // if the agent is in the agents array, remove it
-      const agents = get().agents;
-      if (agents.has(agentId)) {
-        agents.delete(agentId);
-      }
-      set({ agentConfigs: updatedAgentConfigs, agents: agents, isLoading: false });
+      set({ agentConfigs: updatedAgentConfigs, isLoading: false });
     } catch (err) {
       console.error("Error removing agent:", err);
       const errorMessage = err instanceof Error ? err.message : String(err);

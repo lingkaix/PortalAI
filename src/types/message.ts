@@ -72,7 +72,6 @@ export interface BaseMessage {
   // General Purpose Metadata for any other custom data, versioning, source system info, trace IDs etc.
   // Avoid putting core, frequently accessed fields here; promote them to top-level if common.
   metadata?: Record<string, any> | null;
-
 }
 
 // for transforming between Messages in Sqlite (with Drizzle schema) and ContentMessage

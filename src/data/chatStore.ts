@@ -1,15 +1,19 @@
 import { create } from "zustand";
-import { CoreMessage, ContentMessage, ActivityTypeValue } from "../types/message";
-import { ChatType } from "../types/chat";
-import { ChannelType } from "../types/channel";
-import { TaskType } from "../types/chat";
-import { generateId } from "../lib/utils";
+import {
+  CoreMessage,
+  ContentMessage,
+  ChatType,
+  ChannelType,
+  TaskType,
+  ContentMeta
+} from "../types";
 import { getSQLiteDB } from "../lib/db/database";
 import { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import * as schema from "../lib/db/schema";
 import { useAppStateStore } from "./appStateStore";
-import { AppState } from "../types/appState";
 import { eq, desc, asc, and, sql, gte, lt } from "drizzle-orm";
+import { separateContentMeta, inflateMessage } from "../lib/message";
+import { generateId } from "@/lib/utils";
 
 // --- Core Data Structures ---
 /** Enhanced channel info for UI with computed fields */
@@ -49,6 +53,7 @@ export interface ChatIndex {
 export interface TaskIndex {
   [taskId: string]: TaskType;
 }
+
 
 // --- Store State Interface ---
 export interface ChatStoreState {
@@ -131,7 +136,7 @@ export interface ChatStoreState {
    * TODO: now wen only asume the text parts and data parts which directly store in the database
    * TODO: in the future, we will need to handle the file parts
    */
-  addMessage: (message: CoreMessage) => Promise<number>;
+  addMessage: (message: CoreMessage) => Promise<CoreMessage & { _id: number }>;
   /** Edit existing message */
   editMessage: (chatId: string, messageId: string, newContent: ContentMessage['payload']) => Promise<void>;
   /** Delete message (hard delete from database) */
@@ -188,6 +193,7 @@ export interface ChatStoreState {
   // commonly, we update task state
   updateTask: (taskId: string, chatId: string, task: Partial<TaskType>) => Promise<void>;
 }
+
 
 export const useChatStore = create<ChatStoreState>()(
   (set, get) => ({
@@ -463,28 +469,16 @@ export const useChatStore = create<ChatStoreState>()(
       const { chatId, senderId, limit = 50 } = options;
 
       try {
-        // Use database index for efficient starred message queries
-        // Build WHERE conditions
         const conditions = [
           sql`json_extract(${schema.messages.contentMeta}, '$.isStarred') = 1`
         ];
 
-        if (chatId) {
-          conditions.push(eq(schema.messages.chatId, chatId));
-        }
+        if (chatId) conditions.push(eq(schema.messages.chatId, chatId));
+        if (senderId) conditions.push(eq(schema.messages.senderId, senderId));
 
-        if (senderId) {
-          conditions.push(eq(schema.messages.senderId, senderId));
-        }
+        const dbMessages = await db.select().from(schema.messages).where(and(...conditions)).orderBy(desc(schema.messages.timestamp)).limit(limit);
 
-        const starredMessages = await db
-          .select()
-          .from(schema.messages)
-          .where(and(...conditions))
-          .orderBy(desc(schema.messages.timestamp))
-          .limit(limit);
-
-        return starredMessages as CoreMessage[];
+        return dbMessages.map(inflateMessage);
       } catch (error) {
         console.error("Failed to load starred messages:", error);
         return [];
@@ -492,101 +486,68 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     addMessage: async (message) => {
-      const { db } = get();
+      const { db, chats, channels } = get();
       if (!db) throw new Error("Database not initialized");
 
-      const channel = get().channels[message.channelId];
+      const channel = channels[message.channelId];
       if (!channel) throw new Error("Channel not found");
 
-      const chat = get().chats[message.chatId];
+      const chat = chats[message.chatId];
       if (!chat) throw new Error("Chat not found");
 
-      // if the message is  not content message
-      if (message.type !== "content_message") {
-        // store it directly
-        //! testing needed for the type conversion
-        await db.insert(schema.messages).values(message as any);
+      let messageToStore: typeof schema.messages.$inferInsert;
+
+      if (message.type === 'content') {
+        const { base, meta } = separateContentMeta(message);
+        messageToStore = {
+          ...base,
+          timestamp: undefined, // Let DB set it
+          contentMeta: meta
+        };
       } else {
-        // if the message is content message, we need to put extra fields into contentMeta
-        let messageToStore = {
-          ...message as ContentMessage,
-          timestamp: undefined, // let database fill it
-          contentMeta: {
-            reactions: message.reactions,
-            isEdited: message.isEdited,
-            editHistory: message.editHistory,
-            isDeleted: message.isDeleted,
-            deletedInfo: message.deletedInfo,
-            isStarred: message.isStarred,
-            referenceTaskIds: message.referenceTaskIds,
-            contextId: message.contextId,
-            a2aId: message.a2aId,
-          }
-        }
-        delete messageToStore.reactions;
-        delete messageToStore.isEdited;
-        delete messageToStore.editHistory;
-        delete messageToStore.isDeleted;
-        delete messageToStore.deletedInfo;
-        delete messageToStore.isStarred;
-        delete messageToStore.referenceTaskIds;
-        delete messageToStore.contextId;
-        delete messageToStore.a2aId;
-
-        await db.insert(schema.messages).values(messageToStore);
-      }
-      let query = await db.select().from(schema.messages).where(and(eq(schema.messages.id, message.id), eq(schema.messages.chatId, chat.id))).limit(1);
-      if (query.length === 0) throw new Error("Message falied to store");
-      // let msg = query[0] as UserJoinedChatPayload ;
-
-      // update index
-      set({
-        chats: {
-          ...get().chats,
-          [chat.id]: {
-            ...chat,
-            latestMessageTimestamp: query[0].timestamp,
-            // if this chat is the displaying chat, and user is at the  the last viewed message is the latest message, then the unread count is 0
-            unreadCount: get().viewingChatId === chat.id && get().isAtChatEnd ? 0 : chat.unreadCount + 1,
-            messages: [...chat.messages, { ...message, _id: query[0]._id, timestamp: query[0].timestamp }],
-          }
-        }
-      })
-
-      // check if the new message is being read
-      if (get().viewingChatId === chat.id && get().isAtChatEnd) {
-        set({
-          channels: {
-            ...get().channels,
-            [channel.id]: {
-              ...channel,
-              latestUpdateTimestamp: query[0].timestamp,
-              activeChatIds: channel.activeChatIds.sort((a, b) => get().chats[b].latestMessageTimestamp - get().chats[a].latestMessageTimestamp)
-            }
-          }
-        });
-      } else {
-        // if not, put the chat to the top of the activeChatIds and unreadChatIds
-
-        //  add to the top of unreadChatIds if it is not in the list
-        if (!channel.unreadChatIds.includes(chat.id)) {
-          channel.unreadChatIds = [chat.id, ...channel.unreadChatIds];
-        }
-
-        set({
-          channels: {
-            ...get().channels,
-            [channel.id]: {
-              ...channel,
-              latestUpdateTimestamp: query[0].timestamp,
-              hasUnread: true,
-              activeChatIds: channel.activeChatIds.sort((a, b) => get().chats[b].latestMessageTimestamp - get().chats[a].latestMessageTimestamp),
-            }
-          }
-        });
+        messageToStore = {
+          ...message,
+          timestamp: undefined, // Let DB set it
+        };
       }
 
-      return query[0]._id;
+      messageToStore.id = generateId();
+      await db.insert(schema.messages).values(messageToStore);
+
+      const query = await db.select().from(schema.messages).where(and(eq(schema.messages.id, message.id), eq(schema.messages.chatId, chat.id))).limit(1);
+      if (query.length === 0) throw new Error("Message failed to store");
+
+      const insertedMessage = inflateMessage(query[0]) as CoreMessage & { _id: number };
+
+      // Update local state
+      set((state) => {
+        const newChat = { ...state.chats[chat.id] };
+        newChat.latestMessageTimestamp = insertedMessage.timestamp;
+        newChat.messages = [...newChat.messages, insertedMessage];
+
+        const isViewingThisChat = get().viewingChatId === chat.id && get().isAtChatEnd;
+        if (!isViewingThisChat) {
+          newChat.unreadCount++;
+        }
+
+        const newChannel = { ...state.channels[channel.id] };
+        newChannel.latestUpdateTimestamp = insertedMessage.timestamp;
+
+        if (!isViewingThisChat && !newChannel.unreadChatIds.includes(chat.id)) {
+          newChannel.unreadChatIds = [chat.id, ...newChannel.unreadChatIds];
+          newChannel.hasUnread = true;
+        }
+
+        // Re-sort active chats
+        newChannel.activeChatIds.sort((a, b) => (state.chats[b]?.latestMessageTimestamp || 0) - (state.chats[a]?.latestMessageTimestamp || 0));
+
+        return {
+          chats: { ...state.chats, [chat.id]: newChat },
+          channels: { ...state.channels, [channel.id]: newChannel }
+        };
+      });
+
+      return insertedMessage;
     },
 
     editMessage: async (chatId, messageId, newContent) => {
@@ -598,52 +559,30 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     toggleMessageStar: async (chatId, messageId) => {
-      const { db } = get();
+      const { db, chats } = get();
       if (!db) throw new Error("Database not initialized");
 
       try {
-        // Get current message to toggle star status
-        const [currentMessage] = await db
-          .select()
-          .from(schema.messages)
-          .where(eq(schema.messages.id, messageId))
-          .limit(1);
+        const [dbMessage] = await db.select().from(schema.messages).where(and(eq(schema.messages.id, messageId), eq(schema.messages.chatId, chatId))).limit(1);
+        if (!dbMessage || dbMessage.type !== 'content' || !dbMessage.contentMeta) throw new Error("Star-able message not found");
 
-        if (!currentMessage) throw new Error("Message not found");
+        const newMeta = { ...dbMessage.contentMeta, isStarred: !dbMessage.contentMeta.isStarred };
 
-        const currentMeta = currentMessage.contentMeta as any || {};
-        const newIsStarred = !currentMeta.isStarred;
+        await db.update(schema.messages).set({ contentMeta: newMeta }).where(eq(schema.messages.id, messageId));
 
-        // Update in database using the indexed field
-        const updatedContentMeta = {
-          ...currentMeta,
-          isStarred: newIsStarred
-        };
-
-        await db
-          .update(schema.messages)
-          .set({
-            contentMeta: updatedContentMeta
-          })
-          .where(eq(schema.messages.id, messageId));
-
-        // Update local cache if message exists in loaded chats
-        const { chats } = get();
-        const updatedChats = { ...chats };
-
-        // Find the chat containing this message and update it
-        Object.keys(updatedChats).forEach(chatIdKey => {
-          const chat = updatedChats[chatIdKey];
-          const messageIndex = chat.messages.findIndex(msg => msg.id === messageId);
+        // Update local state
+        const chat = chats[chatId];
+        if (chat) {
+          const messageIndex = chat.messages.findIndex(m => m.id === messageId);
           if (messageIndex !== -1) {
-            // Update the message in place
-            const updatedMessage = { ...chat.messages[messageIndex] } as any;
-            updatedMessage.contentMeta = updatedContentMeta;
-            chat.messages[messageIndex] = updatedMessage;
+            const updatedMessages = [...chat.messages];
+            const msg = updatedMessages[messageIndex] as ContentMessage & { _id: number };
+            updatedMessages[messageIndex] = { ...msg, isStarred: newMeta.isStarred };
+            set(state => ({
+              chats: { ...state.chats, [chatId]: { ...chat, messages: updatedMessages } }
+            }));
           }
-        });
-
-        set({ chats: updatedChats });
+        }
       } catch (error) {
         console.error("Failed to toggle message star:", error);
         throw error;
@@ -752,15 +691,15 @@ export const useChatStore = create<ChatStoreState>()(
       const activeChatIds = allChatsIds.filter(chatId => allChatsInfo[chatId].order === 0)
         .sort((a: string, b: string) => allChatsInfo[b].latestMessageTimestamp - allChatsInfo[a].latestMessageTimestamp);
 
-      const lastActivityChatId = allChatsIds.reduce((previousChatId, chatId) => {
-        const previousChatTimestamp = allChatsInfo[previousChatId].latestMessageTimestamp;
-        const currentChatTimestamp = allChatsInfo[chatId].latestMessageTimestamp;
+      const lastActivityChatId = allChatsIds[0] ? allChatsIds.reduce((previousChatId, chatId) => {
+        const previousChatTimestamp = allChatsInfo[previousChatId]?.latestMessageTimestamp ?? 0;
+        const currentChatTimestamp = allChatsInfo[chatId]?.latestMessageTimestamp ?? 0;
         return currentChatTimestamp > previousChatTimestamp ? chatId : previousChatId;
-      }, allChatsIds[0]);
+      }) : '';
 
       const channelInfo: ChannelInfo = {
         ...channel[0],
-        latestUpdateTimestamp: allChatsInfo[lastActivityChatId].latestMessageTimestamp,
+        latestUpdateTimestamp: lastActivityChatId ? allChatsInfo[lastActivityChatId].latestMessageTimestamp : 0,
         hasUnread: unreadChatIds.length > 0,
         isLoading: false,
         pinnedChatIds: pinnedChatIds,
@@ -850,56 +789,42 @@ export const useChatStore = create<ChatStoreState>()(
 
       // load the latest 20 messages if lastViewedMessageId is invalid(uuidv7) or '0000', 
       // OR last viewed message's _id equals (or maybe greater than?) to the latest message's _id
-      let messagesQuery: any[] = [];
+      let dbMessages: (typeof schema.messages.$inferSelect)[] = [];
       let isAtChatEnd = false;
       if (chats[chatId].lastViewedMessageId == '0000' ||
         chats[chatId].lastViewedMessageId == latestMessageQuery[0].id ||
         lastViewedMessageQuery[0]._id >= latestMessageQuery[0]._id
       ) {
         // load the latest 20 messages
-        messagesQuery = await db.select().from(schema.messages)
+        dbMessages = await db.select().from(schema.messages)
           .where(eq(schema.messages.chatId, chatId)).orderBy(desc(schema.messages._id)).limit(20);
         chats[chatId].hasMoreOlder = false;
 
         isAtChatEnd = true;
       } else {
         // load messages from the latest message to the last viewed message
-        messagesQuery = await db.select().from(schema.messages)
+        dbMessages = await db.select().from(schema.messages)
           .where(and(eq(schema.messages.chatId, chatId), gte(schema.messages._id, lastViewedMessageQuery[0]._id))).orderBy(desc(schema.messages._id));
-        chats[chatId].unreadCount = messagesQuery.length;
+        chats[chatId].unreadCount = dbMessages.length;
 
         // load 20 more messages if messagesQuery.length < 10, else load 10 more messages
-        if (messagesQuery.length < 10) {
+        if (dbMessages.length < 10) {
           let moreMessagesQuery = await db.select().from(schema.messages)
-            .where(and(eq(schema.messages.chatId, chatId), lt(schema.messages._id, messagesQuery[messagesQuery.length - 1]._id)))
+            .where(and(eq(schema.messages.chatId, chatId), lt(schema.messages._id, dbMessages[dbMessages.length - 1]._id)))
             .orderBy(desc(schema.messages._id)).limit(20);
           if (moreMessagesQuery.length < 20) chats[chatId].hasMoreOlder = false;
-          messagesQuery = [...messagesQuery, ...moreMessagesQuery];
+          dbMessages = [...dbMessages, ...moreMessagesQuery];
         } else {
           let moreMessagesQuery = await db.select().from(schema.messages)
-            .where(and(eq(schema.messages.chatId, chatId), lt(schema.messages._id, messagesQuery[messagesQuery.length - 1]._id)))
+            .where(and(eq(schema.messages.chatId, chatId), lt(schema.messages._id, dbMessages[dbMessages.length - 1]._id)))
             .orderBy(desc(schema.messages._id)).limit(10);
           if (moreMessagesQuery.length < 10) chats[chatId].hasMoreOlder = false;
-          messagesQuery = [...messagesQuery, ...moreMessagesQuery];
+          dbMessages = [...dbMessages, ...moreMessagesQuery];
         }
         isAtChatEnd = false;
       }
 
-      // inflate contentMeta
-      let messages: (CoreMessage & { _id: number })[] = messagesQuery.map(raw => {
-        // copy data and remove contentMeta
-        let message: any = {}
-        if (raw.contentMeta) {
-          message = { ...raw, ...raw.contentMeta } as any;
-        } else {
-          message = { ...raw } as any;
-        }
-        delete message.contentMeta;
-        return message as CoreMessage & { _id: number };
-      });
-
-      // reverse the order of messages, make the latest message the last one
-      messages.reverse();
+      const messages: (CoreMessage & { _id: number })[] = dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
 
       set({
         isAtChatEnd: chatId === get().viewingChatId ? isAtChatEnd : get().isAtChatEnd,
@@ -914,7 +839,6 @@ export const useChatStore = create<ChatStoreState>()(
           }
         }
       });
-
     },
 
     loadMoreMessages: async (chatId) => {
@@ -945,31 +869,19 @@ export const useChatStore = create<ChatStoreState>()(
 
 
       // load 20 more messages
-      let messagesQuery: any[] = [];
-      if (chat.messages, length === 0) {
+      let dbMessages: (typeof schema.messages.$inferSelect)[] = [];
+      if (chat.messages.length === 0) {
         // load the latest 20 messages
-        messagesQuery = await db.select().from(schema.messages)
+        dbMessages = await db.select().from(schema.messages)
           .where(eq(schema.messages.chatId, chatId)).orderBy(desc(schema.messages._id)).limit(20);
       } else {
         // load 20 more older messages
-        messagesQuery = await db.select().from(schema.messages)
+        dbMessages = await db.select().from(schema.messages)
           .where(and(eq(schema.messages.chatId, chatId), lt(schema.messages._id, chat.messages[0]._id)))
           .orderBy(desc(schema.messages._id)).limit(20);
       }
-      // inflate contentMeta
-      //! testing is enforced to test the type conversion (for all kinds of messages) is right
-      let messages: (CoreMessage & { _id: number })[] = messagesQuery.map(raw => {
-        // copy data and remove contentMeta
-        let message: any = {}
-        if (raw.contentMeta) {
-          message = { ...raw, ...raw.contentMeta } as any;
-        } else {
-          message = { ...raw } as any;
-        }
-        delete message.contentMeta;
-        return message as CoreMessage & { _id: number };
-      });
-      messages.reverse();
+
+      const messages: (CoreMessage & { _id: number })[] = dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
 
       set({
         chats: {
@@ -977,7 +889,7 @@ export const useChatStore = create<ChatStoreState>()(
           [chatId]: {
             ...chat,
             isLoadingOlder: false,
-            hasMoreOlder: messagesQuery.length < 20,
+            hasMoreOlder: dbMessages.length < 20,
             messages: [...messages, ...chat.messages]
           }
         }

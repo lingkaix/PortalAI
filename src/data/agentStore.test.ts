@@ -12,7 +12,7 @@ vi.mock('../lib/localAppData', () => ({
 
 import { describe, it, expect, beforeEach, Mock } from 'vitest';
 import { useAgentStore, loadAgentConfig, saveAgentConfig } from './agentStore';
-import { Agent, LocalAgentConfig, RemoteAgentConfig } from '../types';
+import { LocalAgentConfig, RemoteAgentConfig } from '../types/agent';
 import { generateId } from '../lib/utils';
 import { readJsonFile, writeJsonFile } from '../lib/localAppData';
 import { FileX } from 'lucide-react';
@@ -29,7 +29,6 @@ describe('AgentStore', () => {
         // Reset the store state
         store = useAgentStore.getState();
         store.agentConfigs.clear();
-        store.agents.clear();
         store.error = null;
         store.isLoading = false;  // Set initial loading state to false
 
@@ -39,14 +38,13 @@ describe('AgentStore', () => {
             kind: 'local',
             name: 'Test Agent',
             description: 'Test agent description',
-            modelProvider: 'openai',
+            provider: 'openai',
             model: 'gpt-4',
             systemPrompt: 'You are a test agent',
             apiKey: 'test-api-key',
             isEnabled: true,
             isRetired: false
         };
-        // TODO: add remote agent to testings
         remoteAgentConfig = {
             id: 'remoteId',
             kind: 'remote',
@@ -66,14 +64,12 @@ describe('AgentStore', () => {
         expect(newState.error).toBeNull();
         expect(newState.isLoading).toBe(false);
         expect(newState.agentConfigs.size).toBe(1);
-        expect(newState.agents.size).toBe(1);
     });
 
     it('should add an agent', async () => {
         await store.addAgent(localAgentConfig);
         const newState = useAgentStore.getState();
         expect(newState.agentConfigs.size).toBe(1);
-        expect(newState.agents.size).toBe(1);
     });
 
     it('should update an agent', async () => {
@@ -84,14 +80,23 @@ describe('AgentStore', () => {
         await newState.updateAgent(updatedConfig);
         newState = useAgentStore.getState();
         expect(newState.agentConfigs.size).toBe(1);
-        expect(newState.agents.size).toBe(1);
-        expect(newState.agents.get(localAgentConfig.id)?.name).toBe('Updated Agent');
+        const updated = newState.agentConfigs.get(localAgentConfig.id);
+        if (updated?.kind === 'local') {
+            expect(updated.name).toBe('Updated Agent');
+        } else if (updated?.kind === 'remote') {
+            expect(updated.url).toBe('Updated Agent'); // unlikely, but for type safety
+        }
 
         // if update status as well, ignore it
         const updatedConfig2 = { ...updatedConfig, isEnabled: !updatedConfig.isEnabled, isRetired: !updatedConfig.isRetired, name: 'Updated Agent 2' };
         await newState.updateAgent(updatedConfig2);
         newState = useAgentStore.getState();
-        expect(newState.agents.get(localAgentConfig.id)?.name).toBe('Updated Agent 2');
+        const updated2 = newState.agentConfigs.get(localAgentConfig.id);
+        if (updated2?.kind === 'local') {
+            expect(updated2.name).toBe('Updated Agent 2');
+        } else if (updated2?.kind === 'remote') {
+            expect(updated2.url).toBe('Updated Agent 2');
+        }
         expect(newState.agentConfigs.get(localAgentConfig.id)?.isEnabled).toBe(updatedConfig.isEnabled);
         expect(newState.agentConfigs.get(localAgentConfig.id)?.isRetired).toBe(updatedConfig.isRetired);
     });
