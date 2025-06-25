@@ -1,53 +1,40 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
-import { mockChats, mockMessages, mockUsers, mockWorkspaces } from "../data/mockData"; // Added mockWorkspaces
-import { MessageType, ChatType } from "../types";
 import { Message } from "../components/Message";
 import { ChatInput } from "../components/ChatInput";
 import { ChatHeader } from "../components/ChatHeader";
-import { ChatList } from "../components/ChatList"; // Import ChatList
+import { ChatList } from "../components/ChatList";
+import { useChatStore } from "../data/chatStore";
+import { useSettingsStore } from "../data/settingsStore";
 
 export const ChatPage: React.FC = () => {
   const { chatId, chatType } = useParams<{ chatId?: string; chatType?: "dm" | "group" }>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // TODO: This needs proper workspace context later. For now, just use the first one.
-  const selectedWorkspaceId = mockWorkspaces[0]?.id || null;
+  // Get current user info from settings
+  const name = useSettingsStore((state) => state.name);
+  const status = useSettingsStore((state) => state.status);
+  const avatar = "/default-avatar.png";
+  const currentUser = { id: "0000", name, status, avatar };
 
-  const currentChat = mockChats.find((c) => c.id === chatId && c.type === (chatType === "dm" ? "direct" : "group"));
-  const [messages, setMessages] = useState<MessageType[]>([]);
+  // Get chats and messages from chatStore
+  const chats = useChatStore((state) => state.chats);
+  const chat = chatId ? chats[chatId] : undefined;
+  const messages = chat ? chat.messages : [];
 
-  useEffect(() => {
-    setMessages(chatId ? mockMessages[chatId] || [] : []);
-  }, [chatId]);
+  // TODO: Replace with real workspace context if available
+  const selectedWorkspaceId = chat ? chat.workspaceId : null;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
   }, [messages]);
 
   const handleSendMessage = (messageContent: string) => {
-    if (!currentChat) return;
-    console.log(`Sending message to ${currentChat.id}:`, messageContent);
-    const newMessage: MessageType = {
-      id: `m${Date.now()}`,
-      sender: mockUsers["user3"],
-      content: messageContent,
-      timestamp: new Date(),
-      upvotes: 0,
-      downvotes: 0,
-    };
-    setMessages((prevMessages) => [...prevMessages, newMessage]);
-    if (mockMessages[currentChat.id]) {
-      mockMessages[currentChat.id].push(newMessage);
-    } else {
-      mockMessages[currentChat.id] = [newMessage];
-    }
-    const chatIndex = mockChats.findIndex((c) => c.id === currentChat.id);
-    if (chatIndex !== -1) {
-      mockChats[chatIndex].lastMessage = messageContent;
-      mockChats[chatIndex].timestamp = new Date();
-    }
+    // TODO: Use useSignalStore or useChatStore.addMessage for real message sending
+    // This is a placeholder for now
+    // You may want to call useChatStore.getState().addMessage or similar
+    // For now, do nothing
   };
 
   // Define class strings using CSS variables
@@ -63,25 +50,21 @@ export const ChatPage: React.FC = () => {
   return (
     <div className={pageContainerClasses} data-component-id="ChatPage">
       {/* Chat List Sidebar */}
-      {/* Pass the selectedWorkspaceId (needs proper context later) */}
       <ChatList selectedWorkspaceId={selectedWorkspaceId} />
-
       {/* Main Chat Area */}
       <div className={chatAreaContainerClasses}>
-        {!currentChat ? (
-          // Render placeholder if no chat is selected
+        {!chat ? (
           <div className={placeholderContainerClasses}>
             <MessageSquare size={64} className={placeholderIconClasses} />
             <h2 className={placeholderHeadingClasses}>Select a Conversation</h2>
             <p className={placeholderTextClasses}>Choose a chat from the left sidebar to start messaging.</p>
           </div>
         ) : (
-          // Render the main chat view
           <>
-            <ChatHeader chat={currentChat} />
+            <ChatHeader chat={chat} />
             <div className="flex-grow overflow-y-auto p-5 space-y-2">
               {messages.length > 0 ? (
-                messages.map((msg) => <Message key={msg.id} message={msg} isCurrentUser={msg.sender.id === "user3"} />)
+                messages.filter((msg) => msg.type === 'content').map((msg) => <Message key={msg.id} message={msg} isCurrentUser={msg.senderId === currentUser.id} />)
               ) : (
                 <div className={noMessagesContainerClasses}>
                   <MessageSquare size={48} className={noMessagesIconClasses} />

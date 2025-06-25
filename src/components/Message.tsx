@@ -1,18 +1,26 @@
 import React from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
-import { MessageType } from "../types"; // Import type
+import { ContentMessage } from "../types"; // Import correct type
 import { Avatar } from "./Avatar"; // Import component
 
 interface MessageProps {
-  message: MessageType;
+  message: ContentMessage;
   isCurrentUser: boolean; // Pass this prop explicitly
 }
 
 // Message Component - Enhanced Warmth
 export const Message: React.FC<MessageProps> = ({ message, isCurrentUser }) => {
-  const { id, sender, content, timestamp, upvotes, downvotes } = message;
+  const { id, senderId, payload, timestamp } = message;
 
-  const timeString = timestamp.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  // For now, use a default sender object (real app should resolve sender info)
+  const sender = { name: senderId, avatar: "/default-avatar.png" };
+  const content = Array.isArray(payload) && payload.length > 0 && payload[0].kind === 'text' ? payload[0].text : '';
+
+  const timeString = new Date(timestamp).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+
+  // Fallback for upvotes/downvotes
+  const upvotes = 0;
+  const downvotes = 0;
 
   // TODO: Implement actual vote handling logic
   const handleVote = (type: "up" | "down") => {

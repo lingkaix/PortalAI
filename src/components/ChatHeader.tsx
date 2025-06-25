@@ -1,23 +1,22 @@
-import React, { ReactNode } from "react";
+import React from "react";
 import { Link } from "react-router-dom";
 import { Users, Menu } from "lucide-react";
-import { ChatType, UserType } from "../types";
-import { mockUsers } from "../data/mockData";
+import { ChatType } from "../types";
 import { useRightSidebar } from "../contexts/RightSidebarContext";
 import { Avatar } from "./Avatar";
+import { useSettingsStore } from "../data/settingsStore";
 
 interface ChatHeaderProps {
   chat: ChatType | undefined;
 }
 
-// Helper to find user by name (consider a more robust lookup in a real app)
-const findUserByName = (name: string): UserType | undefined => {
-  return Object.values(mockUsers).find((user) => user.name === name);
-};
-
 // Chat Header Component
 export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
   const { openSidebar } = useRightSidebar();
+  const name = useSettingsStore((state) => state.name);
+  const status = useSettingsStore((state) => state.status);
+  const avatar = "/default-avatar.png";
+  const currentUser = { id: "0000", name, status, avatar };
 
   // Render a placeholder if no chat is selected
   // Define class strings using CSS variables to avoid JSX parsing issues
@@ -40,7 +39,19 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
     return <div className={placeholderClasses}></div>;
   }
 
-  const directUser = chat.type === "direct" ? findUserByName(chat.name) : undefined;
+  // For direct chats, show the other user (not current user)
+  let directUser: { name: string; status: import("../types").UserStatus; avatar: string } | undefined = undefined;
+  if (chat.type === "direct") {
+    if (Array.isArray(chat.participants)) {
+      const other = chat.participants.find((p) => p.userId !== currentUser.id);
+      if (other) {
+        const status = (other as any).status as import("../types").UserStatus | undefined || ('offline' as import("../types").UserStatus);
+        directUser = { name: other.userId, status: status as import("../types").UserStatus, avatar: "/default-avatar.png" };
+      }
+    } else {
+      directUser = { name: chat.name, status: 'offline' as import("../types").UserStatus, avatar: "/default-avatar.png" };
+    }
+  }
 
   // Content for the Right Sidebar (defined here for context)
   // In a larger app, this might be a separate component or generated differently
@@ -54,11 +65,11 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
             <h5 className={sidebarSubHeadingClasses}>Participants ({chat.participants.length})</h5>
             <ul className="space-y-2.5">
               {chat.participants.map((p) => (
-                <li key={p.id} className={`flex items-center space-x-2 text-sm ${sidebarTextClasses}`}>
-                  <Avatar src={p.avatar} alt={p.name} size="sm" status={p.status} />
-                  <span>{p.name}</span>
+                <li key={p.userId} className={`flex items-center space-x-2 text-sm ${sidebarTextClasses}`}>
+                  {/* <Avatar src={p.userId} alt={p.userId} size="sm" status={p.status} /> */}
+                  <span>{p.userId}</span>
                   {/* Indicate if the participant is the current user */}
-                  {p.id === "user3" && <span className={sidebarMutedTextClasses}>(You)</span>}
+                  {p.userId === "0000" && <span className={sidebarMutedTextClasses}>(You)</span>}
                 </li>
               ))}
             </ul>
@@ -92,7 +103,7 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({ chat }) => {
   );
 
   return (
-    <div className={headerBaseClasses} data-component-id="ChatHeader"  data-tauri-drag-region>
+    <div className={headerBaseClasses} data-component-id="ChatHeader" data-tauri-drag-region>
       {/* Left side: Avatar/Icon and Chat Name */}
       <div className="flex items-center space-x-3 overflow-hidden">
         {/* Removed comment */}

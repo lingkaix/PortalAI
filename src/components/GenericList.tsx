@@ -1,4 +1,3 @@
-import React from 'react';
 import { Plus } from 'lucide-react';
 import { GenericListItem } from './GenericListItem'; // Import the item component
 import { cn } from '../lib/utils'; // Assuming you have a cn utility

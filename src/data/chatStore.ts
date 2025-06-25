@@ -5,7 +5,6 @@ import {
   ChatType,
   ChannelType,
   TaskType,
-  ContentMeta
 } from "../types";
 import { getSQLiteDB } from "../lib/db/database";
 import { SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
@@ -13,7 +12,7 @@ import * as schema from "../lib/db/schema";
 import { useAppStateStore } from "./appStateStore";
 import { eq, desc, asc, and, sql, gte, lt } from "drizzle-orm";
 import { separateContentMeta, inflateMessage } from "../lib/message";
-import { generateId } from "@/lib/utils";
+import { generateId } from "../lib/utils";
 
 // --- Core Data Structures ---
 /** Enhanced channel info for UI with computed fields */
@@ -237,6 +236,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     toggleChannelPin: async (channelId, pinnedOrder) => {
+      
       // Implementation: Update channel order in DB and local state
     },
 

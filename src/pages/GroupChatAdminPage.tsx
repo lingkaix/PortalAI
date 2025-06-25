@@ -4,21 +4,27 @@ import { ArrowLeft } from "lucide-react";
 import { PageContent } from "../layouts/PageContent";
 import { Card } from "../components/Card";
 import { Avatar } from "../components/Avatar";
-import { mockChats, mockUsers } from "../data/mockData";
-import { ChatType, UserType } from "../types";
+import { useChatStore } from "../data/chatStore";
+import { useSettingsStore } from "../data/settingsStore";
 
 // Group Chat Admin Page Component
 export const GroupChatAdminPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
 
-  // Find the group chat data (consider fetching in real app)
-  const group = mockChats.find((c) => c.id === groupId && c.type === "group");
+  // Get group chat from chatStore
+  const chat = useChatStore((state) => (groupId ? state.chats[groupId] : undefined));
+
+  // Get current user info from settings
+  const name = useSettingsStore((state) => state.name);
+  const status = useSettingsStore((state) => state.status);
+  const avatar = "/default-avatar.png";
+  const currentUser = { id: "user3", name, status, avatar };
 
   // State for editable group name
-  const [groupName, setGroupName] = useState(group?.name || "");
+  const [groupName, setGroupName] = useState(chat?.name || "");
   // State for managing members (could be more complex in real app)
-  const [participants, setParticipants] = useState<UserType[]>(group?.participants || []);
+  const [participants, setParticipants] = useState(chat?.participants || []);
 
   // Handle navigation back to the chat
   const handleBackToChat = () => {
@@ -27,49 +33,36 @@ export const GroupChatAdminPage: React.FC = () => {
 
   // TODO: Implement save group details logic
   const handleSaveDetails = () => {
-    console.log("Saving group details:", { name: groupName });
-    // Update mock data (for demo purposes)
-    const chatIndex = mockChats.findIndex((c) => c.id === groupId);
-    if (chatIndex !== -1) {
-      mockChats[chatIndex].name = groupName;
-    }
-    alert("Group details saved (mock)");
+    if (!chat) return;
+    // Update group name in the store
+    useChatStore.getState().setChatProfile(chat.id, { name: groupName });
+    alert("Group details saved");
   };
 
   // TODO: Implement add member logic
   const handleAddMember = () => {
-    console.log("Adding member...");
     alert("Add member functionality not implemented.");
   };
 
   // TODO: Implement remove member logic
   const handleRemoveMember = (memberId: string) => {
-    console.log("Removing member:", memberId);
-    setParticipants((prev) => prev.filter((p) => p.id !== memberId));
-    // Update mock data (for demo purposes)
-    const chatIndex = mockChats.findIndex((c) => c.id === groupId);
-    if (chatIndex !== -1) {
-      mockChats[chatIndex].participants = mockChats[chatIndex].participants?.filter((p) => p.id !== memberId);
-    }
-    alert(`Member ${memberId} removed (mock)`);
+    setParticipants((prev) => prev.filter((p) => p.userId !== memberId));
+    // In a real app, you would update the chat participants in the store or backend here
+    alert(`Member ${memberId} removed`);
   };
 
   // TODO: Implement delete group logic
   const handleDeleteGroup = () => {
     if (window.confirm(`Are you sure you want to delete the group "${groupName}"? This cannot be undone.`)) {
-      console.log("Deleting group:", groupId);
-      // Remove from mock data (for demo purposes)
-      const chatIndex = mockChats.findIndex((c) => c.id === groupId);
-      if (chatIndex !== -1) {
-        mockChats.splice(chatIndex, 1);
-      }
-      alert("Group deleted (mock)");
-      navigate("/"); // Navigate away after deletion
+      if (!chat) return;
+      useChatStore.getState().removeChat(chat.id);
+      alert("Group deleted");
+      navigate("/");
     }
   };
 
   // Show not found message if group doesn't exist
-  if (!group) {
+  if (!chat) {
     return (
       <PageContent title="Group Not Found">
         <Card className="p-6">
@@ -102,7 +95,7 @@ export const GroupChatAdminPage: React.FC = () => {
   const dangerTextClasses = "text-sm text-[var(--destructive)]/80 dark:text-[var(--destructive)]/70 mt-3"; // Muted destructive text
 
   return (
-    <PageContent title={`Manage: ${group.name}`} data-component-id="GroupChatAdminPage">
+    <PageContent title={`Manage: ${chat.name}`} data-component-id="GroupChatAdminPage">
       {/* Back Button */}
       <button onClick={handleBackToChat} className={backButtonClasses}>
         <ArrowLeft size={16} className="mr-2" /> Back to Chat
@@ -138,20 +131,18 @@ export const GroupChatAdminPage: React.FC = () => {
           {/* Member List */}
           <ul className={memberListClasses}>
             {participants.map((p) => (
-              <li key={p.id} className={memberListItemClasses}>
-                {" "}
-                {/* Increased padding */}
+              <li key={p.userId} className={memberListItemClasses}>
                 <div className="flex items-center space-x-4">
-                  <Avatar src={p.avatar} alt={p.name} size="md" status={p.status} />
+                  <Avatar src={"/default-avatar.png"} alt={p.userId} size="md" status={(p as any).status || 'offline'} />
                   <span className={memberNameClasses}>
-                    {p.name} {p.id === "user3" ? <span className={memberYouTagClasses}>(You)</span> : ""}
+                    {p.userId} {p.userId === currentUser.id ? <span className={memberYouTagClasses}>(You)</span> : ""}
                   </span>
                 </div>
                 {/* Remove Button (only for non-current users) */}
-                {p.id !== "user3" && (
-                  <button onClick={() => handleRemoveMember(p.id)} className={removeButtonClasses}>
-                     Remove
-                   </button>
+                {p.userId !== currentUser.id && (
+                  <button onClick={() => handleRemoveMember(p.userId)} className={removeButtonClasses}>
+                    Remove
+                  </button>
                 )}
               </li>
             ))}

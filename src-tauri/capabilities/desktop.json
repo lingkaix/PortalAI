@@ -14,6 +14,7 @@
     "core:window:default",
     "core:window:allow-start-dragging",
     "updater:default",
+    "sql:default",
     "fs:default",
     "fs:scope-appdata-recursive",
     "fs:allow-appdata-read-recursive",

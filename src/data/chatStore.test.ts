@@ -1,8 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useChatStore } from './chatStore';
-import type { ChatStoreState } from './chatStore';
-import { ActivityTypeValue } from '../types/message';
-import type { ContentMessage } from '../types/message';
+import { vi } from 'vitest';
 
 // Mock the database and dependencies
 vi.mock('../lib/db/database', () => ({

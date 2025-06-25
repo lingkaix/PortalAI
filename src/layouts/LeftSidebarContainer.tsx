@@ -1,7 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom"; // Use NavLink for active styling
 import { MessageSquare, Users, Wrench, Database, Settings, ChevronsUpDown } from "lucide-react";
-import { mockWorkspaces } from "../data/mockData"; // Keep for switcher
 import { Avatar } from "../components/Avatar"; // For workspace icon
 
 // Define Nav Item structure
@@ -37,7 +36,7 @@ export const LeftSidebarContainer: React.FC = () => {
   const settingsButtonClasses = "flex items-center justify-center w-12 h-12 rounded-lg text-[var(--text-muted)] hover:bg-[var(--background-hover)] hover:text-[var(--text-primary)] transition-colors duration-150";
 
   // TODO: Implement workspace switching logic
-  const currentWorkspace = mockWorkspaces[0]; // Just use the first one for display
+  const currentWorkspace = { name: "Default Workspace", icon: null };
 
   return (
     <div className={sidebarClasses} data-component-id="LeftSidebarContainer">

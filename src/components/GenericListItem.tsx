@@ -1,4 +1,3 @@
-import React from 'react';
 import { Settings, Trash2 } from 'lucide-react';
 import { cn } from '../lib/utils'; // Assuming you have a cn utility
 

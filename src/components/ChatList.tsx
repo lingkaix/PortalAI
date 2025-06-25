@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from "react"; // Consolidated React imports
-import { useParams, Link } from "react-router-dom"; // Consolidated router imports
+import { useParams } from "react-router-dom"; // Consolidated router imports
 import { Search, Settings, Plus, ChevronRight, ChevronDown, ChevronsUpDown, MessageSquarePlus } from "lucide-react"; // Consolidated Lucide imports
-import { mockChats, mockUsers, mockChannels } from "../data/mockData"; // Import mock data
-import { ChatType, ChannelType } from "../types"; // Import types
+import { useChatStore } from "../data/chatStore";
+import { useSettingsStore } from "../data/settingsStore";
 import { Avatar } from "./Avatar"; // Import Avatar component
 import { ChatItem } from "./ChatItem"; // Import ChatItem component
 
@@ -14,11 +14,20 @@ interface ChatListProps {
 export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
   const { chatId } = useParams<{ chatId?: string }>();
   const currentChatId = chatId;
-  const currentUser = mockUsers["user3"]; // Assuming current user
+  // Get current user info from settings
+  const name = useSettingsStore((state) => state.name);
+  const status = useSettingsStore((state) => state.status);
+  // Use a default avatar (could be improved later)
+  const avatar = "/default-avatar.png";
+  const currentUser = { id: "0000", name, status, avatar };
+
+  // Get channels and chats from chatStore
+  const channels = useChatStore((state) => state.channels);
+  const chats = useChatStore((state) => state.chats);
 
   // Filter channels and chats based on selected workspace
-  const filteredChannels = useMemo(() => mockChannels.filter((channel) => channel.workspaceId === selectedWorkspaceId), [selectedWorkspaceId]);
-  const filteredChats = useMemo(() => mockChats.filter((chat) => chat.workspaceId === selectedWorkspaceId), [selectedWorkspaceId]);
+  const filteredChannels = useMemo(() => Object.values(channels).filter((channel) => !selectedWorkspaceId || channel.workspaceId === selectedWorkspaceId), [channels, selectedWorkspaceId]);
+  const filteredChats = useMemo(() => Object.values(chats).filter((chat) => !selectedWorkspaceId || chat.workspaceId === selectedWorkspaceId), [chats, selectedWorkspaceId]);
 
   // State to track expanded channels
   const [expandedChannels, setExpandedChannels] = useState<Set<string>>(new Set());
@@ -32,11 +41,10 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
   const chatsByChannel = filteredChats.reduce((acc, chat) => {
     (acc[chat.channelId] = acc[chat.channelId] || []).push(chat);
     return acc;
-  }, {} as Record<string, ChatType[]>);
+  }, {} as Record<string, typeof filteredChats[number][]>);
 
-  // Sort chats within each channel by timestamp (most recent first)
-  const sortByTimestampDesc = (a: ChatType, b: ChatType) => (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0);
-  Object.values(chatsByChannel).forEach((chats) => chats.sort(sortByTimestampDesc));
+  // Sort chats within each channel by latestMessageTimestamp
+  Object.values(chatsByChannel).forEach((chats) => chats.sort((a, b) => (b.latestMessageTimestamp || 0) - (a.latestMessageTimestamp || 0)));
 
   // Find the channel containing the selected chat
   const activeChannelId = useMemo(() => {
@@ -113,7 +121,6 @@ export const ChatList: React.FC<ChatListProps> = ({ selectedWorkspaceId }) => {
           filteredChannels.map((channel) => {
             const isExpanded = expandedChannels.has(channel.id);
             const isActive = channel.id === activeChannelId;
-            // const isExpanded = expandedChannels.has(channel.id); // This line was the duplicate and is now removed
             const Icon = isExpanded ? ChevronDown : ChevronRight;
             const headerDynamicClasses = isActive ? channelHeaderActiveClasses : channelHeaderDefaultClasses;
             const iconDynamicClasses = isActive ? channelIconActiveClasses : channelIconDefaultClasses;

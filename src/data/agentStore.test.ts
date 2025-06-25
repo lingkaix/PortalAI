@@ -11,11 +11,9 @@ vi.mock('../lib/localAppData', () => ({
 }));
 
 import { describe, it, expect, beforeEach, Mock } from 'vitest';
-import { useAgentStore, loadAgentConfig, saveAgentConfig } from './agentStore';
+import { useAgentStore } from './agentStore';
 import { LocalAgentConfig, RemoteAgentConfig } from '../types/agent';
-import { generateId } from '../lib/utils';
 import { readJsonFile, writeJsonFile } from '../lib/localAppData';
-import { FileX } from 'lucide-react';
 
 describe('AgentStore', () => {
     let localAgentConfig: LocalAgentConfig;

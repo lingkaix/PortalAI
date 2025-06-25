@@ -28,7 +28,10 @@ const formatTimestamp = (date?: Date): string => {
 
 // Chat Item (Layer 2 Sidebar) - Enhanced Warmth
 export const ChatItem: React.FC<ChatItemProps> = ({ chat, isSelected }) => {
-  const { id, type, name, lastMessage, unreadCount, timestamp } = chat;
+  const { id, type, name } = chat;
+  const lastMessage = (chat as any).lastMessage || '';
+  const timestamp = (chat as any).timestamp || null;
+  const unreadCount = (chat as any).unreadCount || 0;
   const linkTo = type === "direct" ? `/chat/dm/${id}` : `/chat/group/${id}`;
   const displayName = name || "Unknown Chat";
 
@@ -56,12 +59,12 @@ export const ChatItem: React.FC<ChatItemProps> = ({ chat, isSelected }) => {
         {lastMessage && <p className={lastMessageClasses}>{lastMessage}</p>}
       </div>
       <div className="ml-2 flex flex-col items-end flex-shrink-0 space-y-1">
-        {timestamp && <span className={timestampClasses}>{formatTimestamp(timestamp)}</span>}
+        {timestamp && <span className={timestampClasses}>{formatTimestamp(new Date(timestamp))}</span>}
         {unreadCount && unreadCount > 0 ? (
           <span className={badgeClasses}>{unreadCount}</span>
         ) : timestamp ? (
           <div className="h-4"></div>
-        ) : null}{" "}
+        ) : null} {" "}
         {/* Placeholder for alignment */}
       </div>
       <ChevronRight size={16} className={chevronClasses} />

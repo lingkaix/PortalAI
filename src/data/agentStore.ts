@@ -4,7 +4,7 @@ import { readJsonFile, writeJsonFile } from "../lib/localAppData";
 import { generateId } from "../lib/utils";
 import { LanguageModelV1 } from "ai";
 import { AgentCard } from "@/types/a2a";
-import { getModel } from "@/lib/models";
+import { getModel } from "../lib/models";
 
 export const AGENTS_FILE = "agents.json";
 /**
