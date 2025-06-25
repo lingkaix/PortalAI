@@ -20,6 +20,7 @@ import { GroupChatAdminPage } from './pages/GroupChatAdminPage';
 import { AgentsPage } from './pages/AgentsPage'; // Import new page
 import { ToolsPage } from './pages/ToolsPage'; // Import new page
 import { KnowledgePage } from './pages/KnowledgePage'; // Import new page
+import { DashboardPage } from './pages/DashboardPage';
 
 // UI Components
 import { Card } from './components/Card';
@@ -46,7 +47,7 @@ const App: React.FC = () => {
           <main className="flex-grow flex flex-col relative overflow-hidden">
             <Routes>
               {/* Chat Routes (Root and specific chat) */}
-              <Route path="/" element={<ChatPage />} />
+              <Route path="/" element={<DashboardPage />} />
               <Route path="/chat/:chatType/:chatId" element={<ChatPage />} />
 
               {/* Page Routes */}

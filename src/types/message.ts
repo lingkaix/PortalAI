@@ -46,7 +46,7 @@ export interface BaseMessage {
   channelId: string;        // ID of the channel this message belongs to
   chatId: string;           // ID of the chat/channel this message belongs to
 
-  senderId: string;         // ID of the User, Agent, or special "system" ID
+  senderId: string;         // ID of the User (0000 is the local user), Agent (0001 is the default admin agent), or special "system" ID
   senderType: MessageSenderType;
 
   // ID of the task this message is related to. '0000' means the message has not related to any task.
