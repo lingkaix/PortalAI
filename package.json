@@ -13,6 +13,7 @@
     "db:migration:generate": "npx drizzle-kit generate"
   },
   "dependencies": {
+    "@a2a-js/sdk": "^0.2.2",
     "@ai-sdk/anthropic": "^1.2.11",
     "@ai-sdk/google": "^1.2.18",
     "@ai-sdk/openai": "^1.3.22",
