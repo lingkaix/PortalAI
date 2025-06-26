@@ -57,8 +57,8 @@ export interface TaskIndex {
 // --- Store State Interface ---
 export interface ChatStoreState {
   // === Core State ===
-  db: SqliteRemoteDatabase<typeof schema>;
-  appStateStore: typeof useAppStateStore;
+  _db: SqliteRemoteDatabase<typeof schema>;
+  _appStateStore: typeof useAppStateStore;
 
   // === Data Indexes ===
   pinnedChannelIds: string[]; // sorted by order
@@ -199,9 +199,9 @@ export interface ChatStoreState {
 export const useChatStore = create<ChatStoreState>()(
   (set, get) => ({
     // Initial state
-    db: new Object() as SqliteRemoteDatabase<typeof schema>,
+    _db: new Object() as SqliteRemoteDatabase<typeof schema>,
     // TODO: (post MVP)use appStateStore to get and store app states persistently
-    appStateStore: useAppStateStore,
+    _appStateStore: useAppStateStore,
     pinnedChannelIds: [],
     unreadChannelIds: [],
     activeChannelIds: [],
@@ -214,18 +214,36 @@ export const useChatStore = create<ChatStoreState>()(
     viewingChatId: null,
     isAtChatEnd: false,
 
-    isLoading: false,
+    isLoading: true,
 
     // TODO: post MVP
     workspaceId: '0000',
 
     // Core initialization
     init: async (appStateStore) => {
-      set({ appStateStore });
+      set({ _appStateStore: appStateStore });
       const db = await getSQLiteDB(schema);
-      set({ db });
+      await getSQLiteDB(schema);
+      set({ _db: db });
+      if (get().workspaceId === '0000') {
+        // check if there is a channel with id '0000' in local workspace, if not, create it
+        const defaultChannel = await db.select({ id: schema.channels.id }).from(schema.channels).where(eq(schema.channels.id, '0000')).limit(1);
+        if (defaultChannel.length === 0) {
+          await get().createChannel({
+            id: '0000',
+            name: 'Default Channel',
+            description: 'where you can chat with all your agents',
+            participants: [], // we will allow all agents to join this channel by default
+            order: 100,
+          })
+          await get().setActiveChannel('0000');
+        }
+      }
       await get().loadIndex();
-      set({ isLoading: true });
+      const activeChatId = await get()._appStateStore.getState().appState.activeChatId;
+      if (activeChatId) {
+        await get().setActiveChat(activeChatId);
+      }
     },
 
     // Channel management - implementations would follow the patterns above
@@ -257,7 +275,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     setChannelProfile: async (channelId, profile) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       try {
@@ -286,13 +304,13 @@ export const useChatStore = create<ChatStoreState>()(
       }
     },
     createChannel: async (channel) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       await db.insert(schema.channels).values(channel);
     },
     toggleChannelArchive: async (channelId) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
       const channel = get().channels[channelId];
       if (!channel) throw new Error("Channel not found");
@@ -315,6 +333,8 @@ export const useChatStore = create<ChatStoreState>()(
       set({ viewingChatId: chatId });
       if (chatId) {
         await get().loadChat(chatId);
+        set({ viewingChannelId: get().chats[chatId].channelId });
+        get()._appStateStore.getState().setAppState({ activeChatId: chatId });
       }
     },
 
@@ -370,7 +390,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     setChatProfile: async (chatId, profile) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       try {
@@ -399,13 +419,13 @@ export const useChatStore = create<ChatStoreState>()(
       }
     },
     createChat: async (chat) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       await db.insert(schema.chats).values(chat);
     },
     toggleChatArchive: async (chatId) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       const chat = get().chats[chatId];
@@ -423,7 +443,7 @@ export const useChatStore = create<ChatStoreState>()(
       }
     },
     updateLastViewedMessage: async (chatId, messageId) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       try {
@@ -465,7 +485,7 @@ export const useChatStore = create<ChatStoreState>()(
     // Message management
 
     loadStarredMessages: async (options = {}) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       const { chatId, senderId, limit = 50 } = options;
@@ -488,7 +508,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     addMessage: async (message) => {
-      const { db, chats, channels } = get();
+      const { _db: db, chats, channels } = get();
       if (!db) throw new Error("Database not initialized");
 
       const channel = channels[message.channelId];
@@ -561,7 +581,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     toggleMessageStar: async (chatId, messageId) => {
-      const { db, chats } = get();
+      const { _db: db, chats } = get();
       if (!db) throw new Error("Database not initialized");
 
       try {
@@ -611,7 +631,7 @@ export const useChatStore = create<ChatStoreState>()(
 
     loadIndex: async () => {
       set({ isLoading: true });
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       // get all active channels
@@ -653,7 +673,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     loadChannel: async (channelId) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       const channel = await db.select().from(schema.channels).where(eq(schema.channels.id, channelId)).limit(1);
@@ -666,7 +686,7 @@ export const useChatStore = create<ChatStoreState>()(
         order: schema.chats.order,
         lastViewedMessageId: schema.chats.lastViewedMessageId,
         lastViewedMessageTimestamp: sql<number | null>`(SELECT timestamp FROM ${schema.messages} WHERE id = ${schema.chats.lastViewedMessageId} LIMIT 1)`,
-        latestMessageTimestamp: sql<number | null>`(SELECT timestamp FROM ${schema.messages} WHERE chatId = ${schema.chats.id} ORDER BY _id DESC LIMIT 1)`,
+        latestMessageTimestamp: sql<number | null>`(SELECT timestamp FROM ${schema.messages} WHERE chat_id = ${schema.chats.id} ORDER BY _id DESC LIMIT 1)`,
         _id: schema.chats._id,
       }).from(schema.chats).where(and(eq(schema.chats.channelId, channelId), gte(schema.chats.order, 0)))
         .orderBy(asc(schema.chats.order), asc(schema.chats._id))
@@ -711,7 +731,9 @@ export const useChatStore = create<ChatStoreState>()(
       }
 
       // load chats WITHOUT initialisation and set isInitialised to false
-      const chatsQuery = await db.select().from(schema.chats).where(and(eq(schema.chats.channelId, channelId), gte(schema.chats.order, 0))).orderBy(desc(schema.chats._id));
+      const chatsQuery = await db.select().from(schema.chats)
+        .where(and(eq(schema.chats.channelId, channelId), gte(schema.chats.order, 0)))
+        .orderBy(desc(schema.chats._id));
       // all chats that is not in the index
       const newChats: ChatIndex = {};
       chatsQuery.forEach(chat => {
@@ -741,7 +763,7 @@ export const useChatStore = create<ChatStoreState>()(
       await get().loadChannel(channelId);
     },
     loadChat: async (chatId) => {
-      const { db, chats } = get();
+      const { _db: db, chats } = get();
       if (!db) throw new Error("Database not initialized");
 
       if (!chats[chatId]) throw new Error("Chat not found in the index");
@@ -760,7 +782,9 @@ export const useChatStore = create<ChatStoreState>()(
       });
 
       // find the latest message in the chat
-      let latestMessageQuery = await db.select().from(schema.messages).where(eq(schema.messages.chatId, chatId)).orderBy(desc(schema.messages._id)).limit(1);
+      let latestMessageQuery = await db.select().from(schema.messages)
+        .where(eq(schema.messages.chatId, chatId))
+        .orderBy(desc(schema.messages._id)).limit(1);
 
       // if latestMessageQuery is empty, which means the chat has no messages,
       // set chat state and return
@@ -806,7 +830,8 @@ export const useChatStore = create<ChatStoreState>()(
       } else {
         // load messages from the latest message to the last viewed message
         dbMessages = await db.select().from(schema.messages)
-          .where(and(eq(schema.messages.chatId, chatId), gte(schema.messages._id, lastViewedMessageQuery[0]._id))).orderBy(desc(schema.messages._id));
+          .where(and(eq(schema.messages.chatId, chatId), gte(schema.messages._id, lastViewedMessageQuery[0]._id)))
+          .orderBy(desc(schema.messages._id));
         chats[chatId].unreadCount = dbMessages.length;
 
         // load 20 more messages if messagesQuery.length < 10, else load 10 more messages
@@ -826,7 +851,8 @@ export const useChatStore = create<ChatStoreState>()(
         isAtChatEnd = false;
       }
 
-      const messages: (CoreMessage & { _id: number })[] = dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
+      const messages: (CoreMessage & { _id: number })[] =
+        dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
 
       set({
         isAtChatEnd: chatId === get().viewingChatId ? isAtChatEnd : get().isAtChatEnd,
@@ -844,7 +870,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     loadMoreMessages: async (chatId) => {
-      const { db, chats } = get();
+      const { _db: db, chats } = get();
       if (!db) throw new Error("Database not initialized");
 
       const chat = chats[chatId];
@@ -883,7 +909,8 @@ export const useChatStore = create<ChatStoreState>()(
           .orderBy(desc(schema.messages._id)).limit(20);
       }
 
-      const messages: (CoreMessage & { _id: number })[] = dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
+      const messages: (CoreMessage & { _id: number })[] =
+        dbMessages.map(dbm => ({ ...inflateMessage(dbm), _id: dbm._id } as CoreMessage & { _id: number })).reverse();
 
       set({
         chats: {
@@ -908,13 +935,13 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     createTask: async (task) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       await db.insert(schema.tasks).values(task);
     },
     updateTask: async (taskId, chatId, task) => {
-      const { db } = get();
+      const { _db: db } = get();
       if (!db) throw new Error("Database not initialized");
 
       // TODO: guard against invalid updates

@@ -34,17 +34,6 @@ const App: React.FC = () => {
     useAgentStore.getState().loadAgent();
     useAppStateStore.getState().init();
     useChatStore.getState().init(useAppStateStore);
-    // check if there is a channel with id '0000' in local workspace, if not, create it
-    if (useChatStore.getState().workspaceId === '0000'
-      && !useChatStore.getState().channels['0000']) {
-      useChatStore.getState().createChannel({
-        id: '0000',
-        name: 'Default Channel',
-        description: 'where you can chat with all your agents',
-        participants: [], // we will allow all agents to join this channel by default
-        order: 100,
-      });
-    }
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (

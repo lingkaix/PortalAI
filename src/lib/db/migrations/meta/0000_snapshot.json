@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "c2af87f1-0b16-4139-b4c5-9a042945c365",
+  "id": "a3f0bd28-c5e1-42d4-a94c-84c03df06f68",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "channels": {
@@ -35,13 +35,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "participants": {
           "name": "participants",
           "type": "text",
@@ -73,15 +66,15 @@
         }
       },
       "indexes": {
-        "uuid_idx": {
-          "name": "uuid_idx",
+        "channels__uuid_idx": {
+          "name": "channels__uuid_idx",
           "columns": [
             "id"
           ],
           "isUnique": true
         },
-        "order_idx": {
-          "name": "order_idx",
+        "channels__order_idx": {
+          "name": "channels__order_idx",
           "columns": [
             "order"
           ],
@@ -131,13 +124,6 @@
           "notNull": true,
           "autoincrement": false
         },
-        "workspace_id": {
-          "name": "workspace_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
         "channel_id": {
           "name": "channel_id",
           "type": "text",
@@ -177,22 +163,22 @@
         }
       },
       "indexes": {
-        "uuid_idx": {
-          "name": "uuid_idx",
+        "chats__uuid_idx": {
+          "name": "chats__uuid_idx",
           "columns": [
             "id"
           ],
           "isUnique": true
         },
-        "channel_id_idx": {
-          "name": "channel_id_idx",
+        "chats__channel_id_idx": {
+          "name": "chats__channel_id_idx",
           "columns": [
             "channel_id"
           ],
           "isUnique": false
         },
-        "order_idx": {
-          "name": "order_idx",
+        "chats__order_idx": {
+          "name": "chats__order_idx",
           "columns": [
             "order"
           ],
@@ -216,13 +202,6 @@
         },
         "id": {
           "name": "id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "workspace_id": {
-          "name": "workspace_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -323,58 +302,58 @@
         }
       },
       "indexes": {
-        "uuid_idx": {
-          "name": "uuid_idx",
+        "messages__uuid_idx": {
+          "name": "messages__uuid_idx",
           "columns": [
             "id"
           ],
           "isUnique": false
         },
-        "chat_id_idx": {
-          "name": "chat_id_idx",
+        "messages__chat_id_idx": {
+          "name": "messages__chat_id_idx",
           "columns": [
             "chat_id"
           ],
           "isUnique": false
         },
-        "sender_id_idx": {
-          "name": "sender_id_idx",
+        "messages__sender_id_idx": {
+          "name": "messages__sender_id_idx",
           "columns": [
             "sender_id"
           ],
           "isUnique": false
         },
-        "task_id_idx": {
-          "name": "task_id_idx",
+        "messages__task_id_idx": {
+          "name": "messages__task_id_idx",
           "columns": [
             "task_id"
           ],
           "isUnique": false
         },
-        "unique_message_id_idx": {
-          "name": "unique_message_id_idx",
+        "messages__unique_message_id_idx": {
+          "name": "messages__unique_message_id_idx",
           "columns": [
             "id",
             "chat_id"
           ],
           "isUnique": true
         },
-        "starred_message_idx": {
-          "name": "starred_message_idx",
+        "messages__starred_message_idx": {
+          "name": "messages__starred_message_idx",
           "columns": [
             "id",
             "chat_id"
           ],
           "isUnique": false,
-          "where": "json_extract(contentMeta, '$.isStarred') = 1"
+          "where": "json_extract(content_meta, '$.isStarred') = 1"
         }
       },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "timestamp_check": {
-          "name": "timestamp_check",
+        "messages__timestamp_check": {
+          "name": "messages__timestamp_check",
           "value": "\"messages\".\"timestamp\" >  932428800000"
         }
       }
@@ -410,11 +389,11 @@
           "notNull": true,
           "autoincrement": false
         },
-        "workspace_id": {
-          "name": "workspace_id",
+        "a2a_id": {
+          "name": "a2a_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": true,
+          "notNull": false,
           "autoincrement": false
         },
         "summary": {
@@ -462,8 +441,8 @@
         }
       },
       "indexes": {
-        "uuid_idx": {
-          "name": "uuid_idx",
+        "tasks__uuid_idx": {
+          "name": "tasks__uuid_idx",
           "columns": [
             "id",
             "chat_id"
@@ -475,8 +454,8 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "checkConstraints": {
-        "created_at_check": {
-          "name": "created_at_check",
+        "tasks__created_at_check": {
+          "name": "tasks__created_at_check",
           "value": "\"tasks\".\"created_at\" >  932428800000"
         }
       }

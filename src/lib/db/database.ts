@@ -2,7 +2,7 @@
 import { drizzle, SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import Database from "@tauri-apps/plugin-sql";
 import { readTextFile } from '@tauri-apps/plugin-fs';
-import { resolveResource } from "@tauri-apps/api/path";
+import { BaseDirectory, resolveResource } from "@tauri-apps/api/path";
 import * as defaultSchema from "./schema";
 
 /**
@@ -103,9 +103,7 @@ export async function migrate(sqlite: Database, migrationFolder: string): Promis
 		)
 	`;
   await sqlite.execute(migrationTableCreate, []);
-
-  // const migrationDir = await join(await resourceDir(), migrationFolder);
-  const migrationIndex = await readTextFile(await resolveResource(`${migrationFolder}/meta/_journal.json`));
+  const migrationIndex = await readTextFile(`${migrationFolder}/_journal.json`, { baseDir: BaseDirectory.Resource });
   const migrationIndexJson = JSON.parse(migrationIndex);
   const migrationEntries = migrationIndexJson.entries as { idx: number; version: string; when: number; tag: string; breakpoints: boolean }[];
 
@@ -121,9 +119,9 @@ export async function migrate(sqlite: Database, migrationFolder: string): Promis
       });
     // if the migration has not been run, run it
     if (hasBeenRun(entry.idx, entry.tag) === undefined) {
-      const migration = await readTextFile(await resolveResource(`${migrationFolder}/${entry.tag}.sql`));
-      sqlite.execute(migration, []);
-      sqlite.execute(
+      const migration = await readTextFile(`${migrationFolder}/${entry.tag}.sql`, { baseDir: BaseDirectory.Resource });
+      await sqlite.execute(migration, []);
+      await sqlite.execute(
         /*sql*/ `INSERT INTO "__drizzle_migrations" (idx, tag, created_at) VALUES ($1, $2, $3)`,
         [entry.idx, entry.tag, Date.now()]
       );

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1749484476307,
-      "tag": "0000_luxuriant_nemesis",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "6",
-      "when": 1749710374708,
-      "tag": "0001_many_amphibian",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "6",
-      "when": 1749723474023,
-      "tag": "0002_easy_scarecrow",
+      "when": 1750918033035,
+      "tag": "0000_majestic_hobgoblin",
       "breakpoints": true
     }
   ]

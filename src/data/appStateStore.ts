@@ -9,7 +9,7 @@ interface AppStateStoreState {
   db?: IDBDatabase;
   appState: AppState;
   init: () => Promise<void>; // load app state from indexed db
-  setAppState: (appState: AppState) => AppState;
+  setAppState: (appState: Partial<AppState>) => void;
 }
 
 export const useAppStateStore = create<AppStateStoreState>((set, get) => ({
@@ -51,9 +51,9 @@ export const useAppStateStore = create<AppStateStoreState>((set, get) => ({
       };
     };
   },
-  setAppState: (appState: AppState) => {
+  setAppState: (appState: Partial<AppState>) => {
     get().db!.transaction(storeName, "readwrite").objectStore(storeName).put(appState, recordName);
-    set({ appState });
+    set({ appState: { ...get().appState, ...appState } });
     return appState;
   },
 }));

@@ -31,7 +31,7 @@ export const DashboardPage: React.FC = () => {
 
   const handleSelectChannel = async (channelId: string) => {
     await setActiveChannel(channelId);
-    navigate(`/chat/group/${channelId}`);
+    navigate(`/chat/${channelId}`);
   };
 
   const handlePinToggle = async (channelId: string) => {

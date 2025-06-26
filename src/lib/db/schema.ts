@@ -81,7 +81,7 @@ export const messages = sqliteTable("messages", {
   check("messages__timestamp_check", sql`${table.timestamp} >  932428800000`), // check if the timestamp is with milliseconds
   
   // index("context_id_idx").on(sql`json_extract(contentMeta, '$.contextId')`),
-  index("messages__starred_message_idx").on(table.id, table.chatId).where(sql`json_extract(contentMeta, '$.isStarred') = 1`),
+  index("messages__starred_message_idx").on(table.id, table.chatId).where(sql`json_extract(content_meta, '$.isStarred') = 1`),
 ]);
 
 // TODO: better management of assets (parts) in the messages
