@@ -1,7 +1,8 @@
 import React from "react";
 import { NavLink } from "react-router-dom"; // Use NavLink for active styling
-import { MessageSquare, Users, Wrench, Database, Settings, ChevronsUpDown } from "lucide-react";
+import { House, MessageSquare, Users, Wrench, Database, Settings, ChevronsUpDown } from "lucide-react";
 import { Avatar } from "../components/Avatar"; // For workspace icon
+import { useChatStore } from "../data/chatStore";
 
 // Define Nav Item structure
 interface NavItemProps {
@@ -38,11 +39,35 @@ export const LeftSidebarContainer: React.FC = () => {
   // TODO: Implement workspace switching logic
   const currentWorkspace = { name: "Default Workspace", icon: null };
 
+  // Chat shortcut logic
+  const {
+    viewingChatId,
+    pinnedChannelIds,
+    channels,
+    chats,
+  } = useChatStore();
+
+  let discussShortcut = "/";
+  if (viewingChatId && chats[viewingChatId]) {
+    discussShortcut = `/chat/${chats[viewingChatId].type}/${viewingChatId}`;
+  } else if (
+    pinnedChannelIds.length > 0 &&
+    channels[pinnedChannelIds[0]] &&
+    channels[pinnedChannelIds[0]].activeChatIds.length > 0
+  ) {
+    const channelId = pinnedChannelIds[0];
+    const chatId = channels[channelId].activeChatIds[0];
+    if (chats[chatId]) {
+      discussShortcut = `/chat/${chats[chatId].type}/${chatId}`;
+    }
+  }
+
   return (
     <div className={sidebarClasses} data-component-id="LeftSidebarContainer">
       {/* Navigation Items */}
       <div className={navItemsContainerClasses}>
-        <NavItem to="/" icon={MessageSquare} label="Discuss" />
+        <NavItem to="/" icon={House} label="Dashboard" />
+        <NavItem to={discussShortcut} icon={MessageSquare} label="Discuss" />
         <NavItem to="/agents" icon={Users} label="Agents" />
         <NavItem to="/tools" icon={Wrench} label="Tools" />
         <NavItem to="/knowledge" icon={Database} label="Knowledge" />
