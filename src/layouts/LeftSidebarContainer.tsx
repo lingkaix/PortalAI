@@ -39,27 +39,11 @@ export const LeftSidebarContainer: React.FC = () => {
   // TODO: Implement workspace switching logic
   const currentWorkspace = { name: "Default Workspace", icon: null };
 
-  // Chat shortcut logic
-  const {
-    viewingChatId,
-    pinnedChannelIds,
-    channels,
-    chats,
-  } = useChatStore();
-
-  let discussShortcut = "/";
+  // set default url of ChatPage
+  const { viewingChatId, chats, } = useChatStore();
+  let discussShortcut = "/chat/0000";
   if (viewingChatId && chats[viewingChatId]) {
     discussShortcut = `/chat/${chats[viewingChatId].type}/${viewingChatId}`;
-  } else if (
-    pinnedChannelIds.length > 0 &&
-    channels[pinnedChannelIds[0]] &&
-    channels[pinnedChannelIds[0]].activeChatIds.length > 0
-  ) {
-    const channelId = pinnedChannelIds[0];
-    const chatId = channels[channelId].activeChatIds[0];
-    if (chats[chatId]) {
-      discussShortcut = `/chat/${chats[chatId].type}/${chatId}`;
-    }
   }
 
   return (
@@ -80,7 +64,7 @@ export const LeftSidebarContainer: React.FC = () => {
           {currentWorkspace?.icon ? (
             <span className="flex items-center justify-center w-full h-full">{currentWorkspace.icon}</span> // Render the icon node directly
           ) : currentWorkspace ? (
-             <Avatar src="" alt={currentWorkspace.name} size="md" /> // Use alt for fallback, empty src
+            <Avatar src="" alt={currentWorkspace.name} size="md" /> // Use alt for fallback, empty src
           ) : (
             <ChevronsUpDown size={20} className="text-[var(--text-muted)]" /> // Fallback icon
           )}

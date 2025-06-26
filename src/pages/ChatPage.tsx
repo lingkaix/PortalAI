@@ -8,6 +8,10 @@ import { ChatList } from "../components/ChatList";
 import { useChatStore } from "../data/chatStore";
 import { useSettingsStore } from "../data/settingsStore";
 
+  /** 
+   * /chat/:channelId 
+   * /chat/:channelId/:chatId
+   */
 export const ChatPage: React.FC = () => {
   const { chatId, chatType } = useParams<{ chatId?: string; chatType?: "dm" | "group" }>();
   const messagesEndRef = useRef<HTMLDivElement>(null);

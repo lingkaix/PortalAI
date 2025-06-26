@@ -59,7 +59,7 @@ const App: React.FC = () => {
             <Routes>
               {/* Chat Routes (Root and specific chat) */}
               <Route path="/" element={<DashboardPage />} />
-              <Route path="/chat/:chatType/:chatId" element={<ChatPage />} />
+              <Route path="/chat/:channelId" element={<ChatPage />} />
 
               {/* Page Routes */}
               <Route path="/agents" element={<AgentsPage />} />
