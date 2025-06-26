@@ -40,10 +40,8 @@ const App: React.FC = () => {
       useChatStore.getState().createChannel({
         id: '0000',
         name: 'Dashboard',
-        workspaceId: '0000',
         participants: [],
         order: 0,
-        pinned: false,
         archived: false,
       });
     }

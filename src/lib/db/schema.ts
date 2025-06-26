@@ -11,7 +11,6 @@ export const channels = sqliteTable("channels", {
   id: text("id").notNull(), // this is the real uuidv7 id
   name: text("name").notNull(),
   description: text("description"),
-  workspaceId: text("workspace_id").notNull(),
   participants: text("participants", { mode: "json" }).notNull().$type<ChannelType["participants"]>(),
   order: integer("order").notNull().default(0),
   knowledgeBaseIds: text("knowledge_base_ids", { mode: "json" }).$type<ChannelType["knowledgeBaseIds"]>(),
@@ -27,7 +26,6 @@ export const chats = sqliteTable("chats", {
   name: text("name").notNull(),
   description: text("description"),
   type: text("type", { enum: ChatTypeValueEnum }).notNull(),
-  workspaceId: text("workspace_id").notNull(),
   channelId: text("channel_id").notNull(),
   order: integer("order").notNull().default(0),
   lastViewedMessageId: text("last_viewed_message_id").notNull().default("0000"),
@@ -44,7 +42,6 @@ export const tasks = sqliteTable("tasks", {
   id: text("id").notNull(), // this is the real uuidv7 id
   chatId: text("chat_id").notNull(),
   channelId: text("channel_id").notNull(),
-  workspaceId: text("workspace_id").notNull(),
   a2aId: text("a2a_id"),
   summary: text("summary"),
   status: text("status", { enum: Object.values(TaskState) as [string, ...string[]] }).notNull(),
@@ -60,7 +57,6 @@ export const tasks = sqliteTable("tasks", {
 export const messages = sqliteTable("messages", {
   _id: integer("_id").primaryKey({ autoIncrement: true }), // this is internal id for the database
   id: text("id").notNull(), // this is the real uuidv7 id
-  workspaceId: text("workspace_id").notNull(),
   channelId: text("channel_id").notNull(),
   chatId: text("chat_id").notNull(),
   senderId: text("sender_id").notNull(),

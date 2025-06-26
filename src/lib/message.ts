@@ -16,7 +16,6 @@ import { Message, TextPart } from "ai";
  */
 export function newContentMessage(params: {
   chatId: string;
-  workspaceId: string;
   channelId: string;
   senderId: string;
   senderType: MessageSenderType;
@@ -35,7 +34,6 @@ export function newContentMessage(params: {
   return {
     // BaseMessage fields
     id: params.id || generateId(),
-    workspaceId: params.workspaceId,
     channelId: params.channelId,
     chatId: params.chatId,
     senderId: params.senderId,
@@ -93,7 +91,7 @@ export function inflateMessage(dbMessage: typeof schema.messages.$inferSelect): 
  * transform a AI SDK message to CotentMessage
  */
 // export function formAIMessage(aiMessage: Message):
-//   Omit<ContentMessage, 'id'| 'chatId' | 'workspaceId' | 'channelId' | 'senderId' | 'senderType'> {
+//   Omit<ContentMessage, 'id'| 'chatId' | 'channelId' | 'senderId' | 'senderType'> {
 //   // transform part format from ai SDK to our own
 //   const parts = aiMessage.parts?.map(part => {
 //     return {

@@ -42,7 +42,6 @@ export type MessageType = (typeof MessageTypeEnum)[number];
 export interface BaseMessage {
   id: string;        // Unique ID for this message/event (UUID v7 recommended)
 
-  workspaceId: string;      // ID of the workspace
   channelId: string;        // ID of the channel this message belongs to
   chatId: string;           // ID of the chat/channel this message belongs to
 

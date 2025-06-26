@@ -73,7 +73,7 @@ export const useSignalStore = create<SignalStoreState>((set, get) => ({
 
   // now only support local agent
   userSendMessage: async (chatId, messageContent, agentId) => {
-    const { addMessage, chats, workspaceId } = useChatStore.getState();
+    const { addMessage, chats } = useChatStore.getState();
     const chat = chats[chatId];
     if (!chat) {
       console.error(`Cannot send message: chat with ID ${chatId} not found.`);
@@ -91,7 +91,6 @@ export const useSignalStore = create<SignalStoreState>((set, get) => ({
     // 1. Create and persist the user's message immediately.
     const userMessage = newContentMessage({
       chatId,
-      workspaceId,
       channelId,
       senderId: '0000', // assuming a single user for now
       senderType: 'user',
@@ -104,7 +103,6 @@ export const useSignalStore = create<SignalStoreState>((set, get) => ({
     const agentMessageShell: Partial<ContentMessage> = {
       id: undefined, // will be determined when inserting to db
       chatId,
-      workspaceId,
       channelId,
       senderId: agentId,
       senderType: 'agent',
@@ -177,7 +175,6 @@ export const useSignalStore = create<SignalStoreState>((set, get) => ({
       // Create an error message in the chat.
       const errorMessage = newContentMessage({
         chatId,
-        workspaceId,
         channelId,
         senderId: 'system',
         senderType: 'system',

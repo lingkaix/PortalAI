@@ -7,7 +7,6 @@ export type ChannelType = {
   id: string;
   name: string;
   description?: string | null;
-  workspaceId: string; // Link channel to a workspace, '0000' means local workspace
   participants: Array<{
     userId: string;
     addedBy: string; // id of the user who added this participant to the channel
