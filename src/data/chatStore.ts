@@ -76,6 +76,8 @@ export interface ChatStoreState {
   // true if the index is built and ready to use
   isLoading: boolean;
 
+  // this indicates the current workspace
+  // TODO: (post MVP) each workspace has its own database
   workspaceId: string;
 
   // === CHANNEL MANAGEMENT ===
@@ -236,7 +238,7 @@ export const useChatStore = create<ChatStoreState>()(
     },
 
     toggleChannelPin: async (channelId, pinnedOrder) => {
-      
+
       // Implementation: Update channel order in DB and local state
     },
 

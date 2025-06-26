@@ -50,7 +50,6 @@ describe('Test Database', () => {
       id: 'test-channel-1',
       name: 'Test Channel',
       description: 'A test channel',
-      workspaceId: 'workspace-1',
       participants: ['user1', 'user2'],
       order: 1,
       knowledgeBaseIds: ['kb1', 'kb2'],
@@ -103,7 +102,6 @@ describe('Test Database', () => {
       name: 'Test Chat',
       description: 'A test chat',
       type: 'personal' as const,
-      workspaceId: 'workspace-1',
       channelId: 'channel-1',
       order: 1,
       lastViewedMessageId: 'msg-1',
@@ -129,7 +127,6 @@ describe('Test Database', () => {
   describe('CRUD Operations - Messages', () => {
     const testMessage = {
       id: 'test-message-1',
-      workspaceId: 'workspace-1',
       channelId: 'channel-1',
       chatId: 'chat-1',
       senderId: 'user-1',
@@ -184,7 +181,6 @@ describe('Test Database', () => {
       id: 'test-task-1',
       chatId: 'chat-1',
       channelId: 'channel-1',
-      workspaceId: 'workspace-1',
       a2aId: 'a2a-1',
       summary: 'Test task summary',
       status: 'pending' as const,
@@ -215,7 +211,6 @@ describe('Test Database', () => {
       await db.insert(schema.channels).values({
         id: 'channel-1',
         name: 'General',
-        workspaceId: 'workspace-1',
         participants: ['user1', 'user2'],
         order: 1
       });
@@ -224,7 +219,6 @@ describe('Test Database', () => {
         id: 'chat-1',
         name: 'Test Chat',
         type: 'personal',
-        workspaceId: 'workspace-1',
         channelId: 'channel-1',
         order: 1,
         participants: ['user1', 'user2']
@@ -233,7 +227,6 @@ describe('Test Database', () => {
       await db.insert(schema.messages).values([
         {
           id: 'msg-1',
-          workspaceId: 'workspace-1',
           channelId: 'channel-1',
           chatId: 'chat-1',
           senderId: 'user-1',
@@ -245,7 +238,6 @@ describe('Test Database', () => {
         },
         {
           id: 'msg-2',
-          workspaceId: 'workspace-1',
           channelId: 'channel-1',
           chatId: 'chat-1',
           senderId: 'user-2',
@@ -312,7 +304,6 @@ describe('Test Database', () => {
       const channelWithJson = {
         id: 'json-channel',
         name: 'JSON Test',
-        workspaceId: 'workspace-1',
         participants: ['user1', 'user2', 'user3'],
         order: 1,
         knowledgeBaseIds: ['kb1', 'kb2', 'kb3'],
@@ -338,7 +329,6 @@ describe('Test Database', () => {
     it('should handle JSON fields in messages', async () => {
       const messageWithJson = {
         id: 'json-message',
-        workspaceId: 'workspace-1',
         channelId: 'channel-1',
         chatId: 'chat-1',
         senderId: 'user-1',
@@ -378,7 +368,6 @@ describe('Test Database', () => {
       const channel = {
         id: 'duplicate-test',
         name: 'First Channel',
-        workspaceId: 'workspace-1',
         participants: ['user1'],
         order: 1
       };

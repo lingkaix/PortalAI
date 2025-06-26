@@ -56,7 +56,6 @@ export const DashboardPage: React.FC = () => {
       id: Date.now().toString(),
       name: newChannelName,
       order: 0,
-      workspaceId: '0000',
       participants: [{ userId: '0000', addedBy: '0000', role: 'owner' }],
     });
     setShowNewChannel(false);

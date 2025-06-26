@@ -39,10 +39,10 @@ const App: React.FC = () => {
       && !useChatStore.getState().channels['0000']) {
       useChatStore.getState().createChannel({
         id: '0000',
-        name: 'Dashboard',
-        participants: [],
-        order: 0,
-        archived: false,
+        name: 'Default Channel',
+        description: 'where you can chat with all your agents',
+        participants: [], // we will allow all agents to join this channel by default
+        order: 100,
       });
     }
   }, []); // Empty dependency array ensures this runs only once on mount
