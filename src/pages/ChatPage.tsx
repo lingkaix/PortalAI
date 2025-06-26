@@ -6,28 +6,21 @@ import { ChatInput } from "../components/ChatInput";
 import { ChatHeader } from "../components/ChatHeader";
 import { ChatList } from "../components/ChatList";
 import { useChatStore } from "../data/chatStore";
+import { ChatView } from "../components/ChatView";
 
-  /** 
-   * /chat/:channelId 
-   * /chat/:channelId/:chatId
-   */
-export const ChatPage: React.FC = () => {
+/** 
+ * /chat/:channelId 
+ * /chat/:channelId/:chatId
+ */
+export const ChatPage: React.FC = async () => {
   const { channelId, chatId } = useParams<{ channelId?: string; chatId?: string }>();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [viewMode, setViewMode] = useState<'chat' | 'create' | 'search'>('chat');
 
-  // Get chats and messages from chatStore
-  const chats = useChatStore((state) => state.chats);
-  const chat = chatId ? chats[chatId] : undefined;
-  const messages = chat ? chat.messages : [];
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "auto" });
-  }, [messages]);
-
-  const handleSendMessage = (messageContent: string) => {
-    // TODO: Use useSignalStore or useChatStore.addMessage for real message sending
-    // For now, do nothing
-  };
+  let chatLoaded = false;
+  if (chatId) {
+    // we check and load chat here for ChatView to use
+    chatLoaded = await useChatStore.getState().setActiveChat(chatId);
+  }
 
   // Define class strings using CSS variables
   const pageContainerClasses = "flex h-full overflow-hidden";
@@ -36,37 +29,41 @@ export const ChatPage: React.FC = () => {
   const placeholderIconClasses = "text-[var(--text-muted)] mb-4";
   const placeholderHeadingClasses = "text-xl font-semibold text-[var(--text-secondary)] mb-2";
   const placeholderTextClasses = "text-[var(--text-secondary)]";
-  const noMessagesContainerClasses = "text-center text-[var(--text-secondary)] mt-10";
-  const noMessagesIconClasses = "mx-auto mb-2 opacity-40";
+
+  // Placeholder components
+  const ChatCreationDialog = () => (
+    <div className="flex-grow flex flex-col items-center justify-center text-center p-10">
+      <h2 className="text-xl font-semibold text-[var(--text-secondary)] mb-2">Create a New Chat</h2>
+      <p className="text-[var(--text-secondary)]">Chat creation dialog goes here.</p>
+    </div>
+  );
+  const SearchResult = () => (
+    <div className="flex-grow flex flex-col items-center justify-center text-center p-10">
+      <h2 className="text-xl font-semibold text-[var(--text-secondary)] mb-2">Search Results</h2>
+      <p className="text-[var(--text-secondary)]">Search results will be displayed here.</p>
+    </div>
+  );
 
   return (
     <div className={pageContainerClasses} data-component-id="ChatPage">
       {/* Chat List Sidebar */}
       <ChatList channelId={channelId || null} />
-      {/* Main Chat Area */}
+      {/* Main Chat Area (switchable) */}
       <div className={chatAreaContainerClasses}>
-        {!chat ? (
+        {!chatLoaded && viewMode === 'chat' ? (
           <div className={placeholderContainerClasses}>
             <MessageSquare size={64} className={placeholderIconClasses} />
             <h2 className={placeholderHeadingClasses}>Select a Conversation</h2>
             <p className={placeholderTextClasses}>Choose a chat from the left sidebar to start messaging.</p>
           </div>
+        ) : viewMode === 'create' ? (
+          <ChatCreationDialog />
+        ) : viewMode === 'search' ? (
+          <SearchResult />
         ) : (
-          <>
-            <ChatHeader chat={chat} />
-            <div className="flex-grow overflow-y-auto p-5 space-y-2">
-              {messages.length > 0 ? (
-                messages.filter((msg) => msg.type === 'content').map((msg) => <Message key={msg.id} message={msg} isCurrentUser={false} />)
-              ) : (
-                <div className={noMessagesContainerClasses}>
-                  <MessageSquare size={48} className={noMessagesIconClasses} />
-                  No messages yet. Be the first to say hello!
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-            <ChatInput onSendMessage={handleSendMessage} />
-          </>
+          <ChatView
+            chatId={chatId!}
+          />
         )}
       </div>
     </div>

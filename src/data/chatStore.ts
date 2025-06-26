@@ -99,8 +99,10 @@ export interface ChatStoreState {
 
   // === CHAT MANAGEMENT ===
 
-  /** Set active chat and load its messages */
-  setActiveChat: (chatId: string | null) => Promise<void>;
+  /** Set active chat and load its messages 
+   * @returns true if the chat is loaded successfully, false otherwise
+  */
+  setActiveChat: (chatId: string | null) => Promise<boolean>;
   /** Pin/unpin chat within its channel */
   toggleChatPin: (chatId: string, pinnedOrder?: number) => Promise<void>;
   /** Reorder pinned chats within a channel */
@@ -331,11 +333,18 @@ export const useChatStore = create<ChatStoreState>()(
 
     setActiveChat: async (chatId) => {
       set({ viewingChatId: chatId });
+      get()._appStateStore.getState().setAppState({ activeChatId: chatId });
       if (chatId) {
-        await get().loadChat(chatId);
-        set({ viewingChannelId: get().chats[chatId].channelId });
-        get()._appStateStore.getState().setAppState({ activeChatId: chatId });
+        try {
+          await get().loadChat(chatId);
+          set({ viewingChannelId: get().chats[chatId].channelId });
+        } catch (error) {
+          console.error("Failed to load chat:", error);
+          return false;
+        }
+        return true;
       }
+      return false;
     },
 
     toggleChatPin: async (chatId, pinnedOrder) => {
@@ -475,8 +484,6 @@ export const useChatStore = create<ChatStoreState>()(
             }
           });
         }
-
-
       } catch (error) {
         console.error("Failed to update last viewed message:", error);
         throw error;

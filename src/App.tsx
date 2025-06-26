@@ -32,8 +32,9 @@ const App: React.FC = () => {
   useEffect(() => {
     useSettingsStore.getState().loadSettings();
     useAgentStore.getState().loadAgent();
-    useAppStateStore.getState().init();
-    useChatStore.getState().init(useAppStateStore);
+    useAppStateStore.getState().init().then(() => {
+      useChatStore.getState().init(useAppStateStore);
+    });
   }, []); // Empty dependency array ensures this runs only once on mount
 
   return (
